@@ -1,0 +1,6 @@
+[submodule "STM32-base"]
+	path = STM32-base
+	url = https://github.com/CelioPaula/STM32_drone_controller.git
+[submodule "STM32-base-STM32Cube"]
+	path = STM32-base-STM32Cube
+	url = https://github.com/CelioPaula/STM32_drone_controller.git
