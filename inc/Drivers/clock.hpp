@@ -14,4 +14,7 @@ void SystemClock_Config(void);
   */
 void hal_clock_init(void);
 
+
+void gpio_clock_init(GPIO_TypeDef *gpio_port);
+
 #endif // CLOCK_HPP

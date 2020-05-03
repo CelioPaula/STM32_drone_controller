@@ -102,7 +102,6 @@ OBJ_FILE_PATH = $(OBJ_FOLDER)/$(OBJ_FILE_NAME)
 
 # Input files
 SRC ?=
-SRC += $(SRC_FOLDER)/*.c
 SRC += $(SRC_FOLDER)/*.cpp
 SRC += $(SRC_FOLDER)/Drivers/*.cpp
 SRC += $(SRC_FOLDER)/stm32f3_hal/*.c

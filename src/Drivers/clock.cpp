@@ -46,3 +46,19 @@ void hal_clock_init(void) {
 
   HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_0);
 }
+
+void gpio_clock_init(GPIO_TypeDef *gpio_port) {
+
+    if(gpio_port == GPIOA) {
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+    }
+    if(gpio_port == GPIOB) {
+        __HAL_RCC_GPIOB_CLK_ENABLE();
+    }
+    if(gpio_port == GPIOC) {
+        __HAL_RCC_GPIOC_CLK_ENABLE();
+    }
+    if(gpio_port == GPIOD) {
+        __HAL_RCC_GPIOD_CLK_ENABLE();
+    }
+}

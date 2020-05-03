@@ -246,7 +246,8 @@ typedef enum
   * @{
   */
 
-/** @addtogroup GPIO_Exported_Functions_Group1 Initialization/de-initialization functions 
+/** @addtogroup GPIO_Exported_Functions_Group1 Initipush_pull,
+         open_drain,alization/de-initialization functions
  *  @brief    Initialization and Configuration functions
  * @{
  */
