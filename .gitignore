@@ -1,5 +1,5 @@
-bin/
-obj/
-STM32_drone_controller.creator.user
+bin/*
+obj/*
+STM32_drone_controller.creator.user*
 
 
