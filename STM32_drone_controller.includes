@@ -291,3 +291,5 @@ tools/share/doc/gcc-arm-none-eabi/html/gprof.html
 tools/share/gcc-arm-none-eabi/libstdcxx/v6
 inc/Drivers
 src/Drivers
+src/maths
+inc/maths

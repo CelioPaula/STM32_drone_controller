@@ -2,63 +2,24 @@
 
 uint16_t gpio_interrupt_pin[7] = {0};
 
-Gpio::Gpio(GPIO_TypeDef *gpio_port, uint16_t gpio_pin):
-    pin_number(gpio_pin),
+Gpio::Gpio(GPIO_TypeDef *gpio_port, uint16_t pin_number):
     gpio_port(gpio_port),
+    pin_number(pin_number),
     gpio_state(GPIO_State_LOW){
-
-}
-
-void Gpio::init_struct() {
     gpio_clock_init(gpio_port);
-
     gpio_init_struct = {0};
     gpio_init_struct.Pin = pin_number;
 }
 
-Gpio_input::Gpio_input(GPIO_TypeDef *gpio_port, uint16_t gpio_pin, Input_Mode input_mode, Pull_Mode pull_mode):
-    Gpio(gpio_port, gpio_pin),
+Gpio_input::Gpio_input(GPIO_TypeDef *gpio_port, uint16_t pin_number, Input_Mode input_mode, Pull_Mode pull_mode):
+    Gpio(gpio_port, pin_number),
     input_mode(input_mode),
     pull_mode(pull_mode) {
+    gpio_init_struct.Mode = input_mode;
+    gpio_init_struct.Pull = pull_mode;
 }
 
 void Gpio_input::init() {
-    init_struct();
-
-    switch (input_mode) {
-        case FloatingInput :
-            gpio_init_struct.Mode = GPIO_MODE_INPUT;
-            break;
-        case AnalogInput :
-            gpio_init_struct.Mode = GPIO_MODE_ANALOG;
-            break;
-        case EXTIT_RisingEdge :
-            gpio_init_struct.Mode = GPIO_MODE_IT_RISING;
-            //SET NVIC
-            break;
-        case EXTIT_FallingEdge :
-            gpio_init_struct.Mode = GPIO_MODE_IT_FALLING;
-            //SET NVIC
-            break;
-        default :
-            gpio_init_struct.Mode = GPIO_MODE_INPUT;
-            break;
-    }
-
-    switch (pull_mode) {
-        case No_Pull :
-            gpio_init_struct.Pull = GPIO_NOPULL;
-            break;
-        case Pull_Up :
-            gpio_init_struct.Pull = GPIO_PULLUP;
-            break;
-        case Pull_Down :
-            gpio_init_struct.Pull = GPIO_PULLDOWN;
-            break;
-        default :
-            gpio_init_struct.Pull = GPIO_NOPULL;
-            break;
-    }
     HAL_GPIO_Init(gpio_port, &gpio_init_struct);
 }
 
@@ -114,40 +75,15 @@ bool Gpio_input::set_interrupt_priority(uint32_t preempt_priority, uint32_t sub_
     }
 }
 
-Gpio_output::Gpio_output(GPIO_TypeDef *gpio_port, uint16_t gpio_pin, Output_Mode output_mode, Output_Speed output_speed):
-    Gpio(gpio_port, gpio_pin),
+Gpio_output::Gpio_output(GPIO_TypeDef *gpio_port, uint16_t pin_number, Output_Mode output_mode, Output_Speed output_speed):
+    Gpio(gpio_port, pin_number),
     output_mode(output_mode),
     output_speed(output_speed){
+    gpio_init_struct.Mode = output_mode;
+    gpio_init_struct.Speed = output_speed;
 }
 
 void Gpio_output::init() {
-    init_struct();
-    switch (output_mode) {
-        case Push_Pull:
-            gpio_init_struct.Mode = GPIO_MODE_OUTPUT_PP;
-            break;
-        case Open_Drain:
-            gpio_init_struct.Mode = GPIO_MODE_OUTPUT_OD;
-            break;
-        default:
-            gpio_init_struct.Mode = GPIO_MODE_OUTPUT_PP;
-            break;
-    }
-
-    switch (output_speed) {
-        case SpeedUpTo_2MHz:
-            gpio_init_struct.Speed = GPIO_SPEED_FREQ_LOW;
-            break;
-        case SpeedUpTo_10MHz:
-            gpio_init_struct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-            break;
-        case SpeedUpTo_50MHz:
-            gpio_init_struct.Speed = GPIO_SPEED_FREQ_HIGH;
-            break;
-        default:
-            gpio_init_struct.Speed = GPIO_SPEED_FREQ_LOW;
-            break;
-    }
     HAL_GPIO_Init(gpio_port, &gpio_init_struct);
 }
 
@@ -169,6 +105,180 @@ void Gpio_output::toggle_state() {
            set_state(GPIO_State_HIGH);
            break;
     }
+}
+
+TIM_HandleTypeDef Pwm_output::timer_handle;
+
+Pwm_output::Pwm_output(GPIO_TypeDef *gpio_port, uint16_t pin_number, uint16_t timer_period, uint16_t timer_prescaler):
+    Gpio_output(gpio_port, pin_number, AlternatePushPull, SpeedUpTo_2MHz) {
+    period = timer_period;
+    prescaler = timer_prescaler;
+
+}
+
+void Pwm_output::set_pwm_timer_instance() {
+    if (gpio_port == GPIOC) {
+        if (pin_number == GPIO_PIN_3) {
+            timer_instance = TIM1;
+            timer_channel = TIM_CHANNEL_4;
+        }
+        if (pin_number == GPIO_PIN_9) {
+            timer_instance = TIM8;
+            timer_channel = TIM_CHANNEL_4;
+        }
+    }
+    if (gpio_port == GPIOA) {
+        if (pin_number == GPIO_PIN_0) {
+            timer_instance = TIM2;
+            timer_channel = TIM_CHANNEL_1;
+        }
+        if (pin_number == GPIO_PIN_1) {
+            timer_instance = TIM2;
+            timer_channel = TIM_CHANNEL_2;
+        }
+        if (pin_number == GPIO_PIN_4) {
+            timer_instance = TIM3;
+            timer_channel = TIM_CHANNEL_2;
+        }
+        if (pin_number == GPIO_PIN_6) {
+            timer_instance = TIM3;
+            timer_channel = TIM_CHANNEL_1;
+        }
+        if (pin_number == GPIO_PIN_11) {
+            timer_instance = TIM4;
+            timer_channel = TIM_CHANNEL_1;
+        }
+        if (pin_number == GPIO_PIN_12) {
+            timer_instance = TIM4;
+            timer_channel = TIM_CHANNEL_2;
+        }
+    }
+    if (gpio_port == GPIOB) {
+        if (pin_number == GPIO_PIN_0) {
+            timer_instance = TIM3;
+            timer_channel = TIM_CHANNEL_3;
+        }
+        if (pin_number == GPIO_PIN_1) {
+            timer_instance = TIM3;
+            timer_channel = TIM_CHANNEL_4;
+        }
+        if (pin_number == GPIO_PIN_10) {
+            timer_instance = TIM2;
+            timer_channel = TIM_CHANNEL_3;
+        }
+        if (pin_number == GPIO_PIN_11) {
+            timer_instance = TIM2;
+            timer_channel = TIM_CHANNEL_4;
+        }
+        if (pin_number == GPIO_PIN_15) {
+            timer_instance = TIM15;
+            timer_channel = TIM_CHANNEL_2;
+        }
+        if (pin_number == GPIO_PIN_8) {
+            timer_instance = TIM4;
+            timer_channel = TIM_CHANNEL_3;
+        }
+        if (pin_number == GPIO_PIN_9) {
+            timer_instance = TIM4;
+            timer_channel = TIM_CHANNEL_4;
+        }
+    }
+}
+
+void Pwm_output::set_alternate_function() {
+    if (timer_instance == TIM1) {
+        gpio_init_struct.Alternate = GPIO_AF2_TIM1;
+    }
+    if (timer_instance == TIM2) {
+        gpio_init_struct.Alternate = GPIO_AF2_TIM2;
+    }
+    if (timer_instance == TIM3) {
+        gpio_init_struct.Alternate = GPIO_AF2_TIM3;
+    }
+    if (timer_instance == TIM4) {
+        gpio_init_struct.Alternate = GPIO_AF2_TIM4;
+    }
+    if (timer_instance == TIM8) {
+        gpio_init_struct.Alternate = GPIO_AF2_TIM8;
+    }
+    if (timer_instance == TIM15) {
+        gpio_init_struct.Alternate = GPIO_AF2_TIM15;
+    }
+}
+
+void Pwm_output::init() {
+    set_pwm_timer_instance();
+    //pwm_timer_clock_init(timer_instance);
+    init_pwm_timer_struct();
+    init_pwm_timer_clock_source_config();
+    HAL_TIM_PWM_Init(&timer_handle);
+    init_pwm_timer_master_config();
+    init_pwm_timer_output_compare();
+
+    set_alternate_function();
+    Gpio_output::init();
+}
+
+void Pwm_output::init_pwm_timer_struct() {
+    /** TIMER FREQUENCY = (HCLOCK FREQ)/[(PERIOD + 1)x(PRESCALER + 1)] **/
+    /** Default HCLOCK FREQ : 72 MHz **/
+    timer_handle.Instance = timer_instance;
+    // TIMER PRESCALER : PR
+    timer_handle.Init.Prescaler = prescaler;
+    timer_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
+    // TIMER AUTORELOAD : ARR
+    timer_handle.Init.Period = period;
+    timer_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    timer_handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    HAL_TIM_Base_Init(&timer_handle);
+}
+
+void Pwm_output::init_pwm_timer_clock_source_config() {
+    TIM_ClockConfigTypeDef clock_source_config = {0};
+    clock_source_config.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    HAL_TIM_ConfigClockSource(&timer_handle, &clock_source_config);
+}
+
+void Pwm_output::init_pwm_timer_output_compare() {
+    TIM_OC_InitTypeDef output_compare_config = {0};
+    output_compare_config.OCMode = TIM_OCMODE_PWM1;
+    output_compare_config.Pulse = 0;
+    output_compare_config.OCPolarity = TIM_OCPOLARITY_HIGH;
+    output_compare_config.OCFastMode = TIM_OCFAST_DISABLE;
+    HAL_TIM_PWM_ConfigChannel(&timer_handle, &output_compare_config, timer_channel);
+}
+
+void Pwm_output::init_pwm_timer_master_config() {
+    TIM_MasterConfigTypeDef master_config = {0};
+    master_config.MasterOutputTrigger = TIM_TRGO_RESET;
+    master_config.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    HAL_TIMEx_MasterConfigSynchronization(&timer_handle, &master_config);
+}
+
+void Pwm_output::set_duty_cycle(float duty_cyle) {
+    uint32_t ccr = duty_cyle * (float)period;
+    if (timer_channel == TIM_CHANNEL_1) {
+        timer_handle.Instance->CCR1 = ccr;
+    }
+    if (timer_channel == TIM_CHANNEL_2) {
+        timer_handle.Instance->CCR2 = ccr;
+    }
+    if (timer_channel == TIM_CHANNEL_3) {
+        timer_handle.Instance->CCR3 = ccr;
+    }
+    if (timer_channel == TIM_CHANNEL_4) {
+        timer_handle.Instance->CCR4 = ccr;
+    }
+    if (timer_channel == TIM_CHANNEL_5) {
+        timer_handle.Instance->CCR5 = ccr;
+    }
+    if (timer_channel == TIM_CHANNEL_6) {
+        timer_handle.Instance->CCR6 = ccr;
+    }
+}
+
+void Pwm_output::start() {
+    HAL_TIM_PWM_Start(&timer_handle, timer_channel);
 }
 
 extern "C" {

@@ -66,10 +66,12 @@ CPPFLAGS += -Wextra
 
 # Flags - Debugging Options
 CPPFLAGS += -g
+CPPFLAGS += -gdwarf-2
 
 # Flags - Optimization Options
 CPPFLAGS += -ffunction-sections
 CPPFLAGS += -fdata-sections
+CPPFLAGS += -O2
 
 # Flags - Preprocessor options
 CPPFLAGS += -D $(MAPPED_DEVICE)
@@ -91,6 +93,7 @@ CPPFLAGS += -mlittle-endian
 CPPFLAGS += -mthumb
 CPPFLAGS += -masm-syntax-unified
 
+
 # Output files
 ELF_FILE_NAME ?= stm32_executable.elf
 BIN_FILE_NAME ?= stm32_bin_image.bin
@@ -104,11 +107,13 @@ OBJ_FILE_PATH = $(OBJ_FOLDER)/$(OBJ_FILE_NAME)
 SRC ?=
 SRC += $(SRC_FOLDER)/*.cpp
 SRC += $(SRC_FOLDER)/Drivers/*.cpp
+SRC += $(SRC_FOLDER)/maths/*.cpp
 SRC += $(SRC_FOLDER)/stm32f3_hal/*.c
 
 CPPFLAGS += -I ./inc
 CPPFLAGS += -I ./inc/Drivers
 CPPFLAGS += -I ./inc/stm32f3_hal
+CPPFLAGS += -I ./inc/maths
 
 # Startup file
 DEVICE_STARTUP = $(BASE_STARTUP)/$(SERIES_FOLDER)/$(MAPPED_DEVICE).s
