@@ -2,7 +2,7 @@
 #define DMA_HPP
 
 #pragma once
-#include "stm32f3xx_hal.h"
+#include "stm32f4xx_hal.h"
 #include "Drivers/clock.hpp"
 
 typedef enum {
@@ -18,17 +18,16 @@ class Dma
 {
     public:
 
-        Dma(DMA_Channel_TypeDef *dma_instance, DMA_Priority dma_priority);
+        Dma(DMA_Stream_TypeDef *dma_instance, uint32_t dma_channel, DMA_Priority dma_priority);
 
         void set_dma();
 
         void init();
 
-        void set_dma_interrupts(uint32_t preempt_priority, uint32_t sub_priority);
-
     private :
 
-        DMA_Channel_TypeDef *dma_instance;
+        DMA_Stream_TypeDef *dma_instance;
+        uint32_t dma_channel;
 
         DMA_Priority dma_priority;
 

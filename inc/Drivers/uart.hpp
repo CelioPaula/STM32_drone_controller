@@ -2,13 +2,12 @@
 #define UART_HPP
 
 #pragma once
-#include "stm32f3xx_hal.h"
+#include "stm32f4xx_hal.h"
 #include "Drivers/gpio.hpp"
 #include "Drivers/clock.hpp"
 #include <string>
 
 typedef enum {
-    UART_7B_Word_Length = UART_WORDLENGTH_7B,
     UART_8B_Word_Length = UART_WORDLENGTH_8B,
     UART_9B_Word_Length = UART_WORDLENGTH_9B,
 }UART_Word_Length;
@@ -20,9 +19,7 @@ typedef enum {
 }UART_Parity;
 
 typedef enum {
-    UART_0_5_Stop_Bits = UART_STOPBITS_0_5,
     UART_1_Stop_Bits = UART_STOPBITS_1,
-    UART_1_5_Stop_Bits = UART_STOPBITS_1_5,
     UART_2_Stop_Bits = UART_STOPBITS_2,
 }UART_Stop_Bits;
 
@@ -51,23 +48,24 @@ class Uart {
     public:
 
         // Make sure to have both rx and tx pins on the same gpio port
-        Uart(GPIO_TypeDef *gpio_port, uint16_t rx_pin, uint16_t tx_pin, USART_TypeDef *instance, UART_Mode mode);
+        Uart(GPIO_TypeDef *gpio_port, uint16_t rx_pin, uint16_t tx_pin);
 
-        void init();
+        void init(uint32_t baudrate);
 
         void default_init(uint32_t baudrate);
 
-        void set_data_frame(uint32_t baudrate, UART_Word_Length word_length, UART_Stop_Bits stop_bits, UART_Parity parity);
+        void set_data_frame(UART_Word_Length word_length, UART_Stop_Bits stop_bits, UART_Parity parity);
 
         void set_control_flow(UART_Ctl_Flow hw_ctl_flow);
 
-        void set_sampling(UART_Over_Sampling over_sampling, bool one_bit_sampling);
+        void set_sampling(UART_Over_Sampling over_sampling);
 
         bool write(const char *tx_data);
 
         char *read();
 
     private:
+
         GPIO_TypeDef* gpio_port;
 
         uint16_t rx_pin;
@@ -76,14 +74,12 @@ class Uart {
         UART_HandleTypeDef uart_handle;
 
         USART_TypeDef *instance;
-
-        UART_Mode mode;
-
 #define RX_BUFFER_SIZE 1000
 
         char rx_buffer[RX_BUFFER_SIZE];
 
-        void init_pinout();
+        void init_pinout(bool is_tx);
+        void set_instance();
 };
 
 extern Uart uart;

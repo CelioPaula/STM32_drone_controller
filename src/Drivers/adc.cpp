@@ -1,18 +1,18 @@
 #include "Drivers/adc.hpp"
 
+#include "Drivers/uart.hpp"
 #include <string.h>
 
 Adc::Adc(GPIO_TypeDef *gpio_port, uint16_t pin_number, ADC_Resolution adc_resolution, bool use_dma):
+    max_converted_value(0),
     gpio_port(gpio_port), pin_number(pin_number),
     resolution(adc_resolution),
     use_dma(use_dma) {
 
-    set_adc_channel();
-
-    adc_handle.Instance = instance;
-    adc_handle.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+    adc_handle.Instance = ADC1;
+    adc_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
     adc_handle.Init.Resolution = resolution;
-    adc_handle.Init.ScanConvMode = ADC_SCAN_DISABLE;
+    adc_handle.Init.ScanConvMode = DISABLE;
     adc_handle.Init.ContinuousConvMode = ENABLE;
     adc_handle.Init.DiscontinuousConvMode = DISABLE;
     adc_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
@@ -24,41 +24,44 @@ Adc::Adc(GPIO_TypeDef *gpio_port, uint16_t pin_number, ADC_Resolution adc_resolu
     } else {
         adc_handle.Init.DMAContinuousRequests = DISABLE;
     }
-    adc_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-    adc_handle.Init.LowPowerAutoWait = ENABLE;
-    adc_handle.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
+    adc_handle.Init.EOCSelection = EOC_SEQ_CONV;
 
-    set_multimode();
+    init_pinouts();
+
+    //set_multimode();
 
     set_adc_config();
+
+    set_adc_max_converted_value();
 
     memset(dma_buffer, 0, MAX_ADC_DEVICES * sizeof(uint32_t));
 }
 
 void Adc::init() {
-
     gpio_clock_init(gpio_port);
 
-    adc_clock_init(instance);
+    adc_clock_init(ADC1);
 
     HAL_GPIO_Init(gpio_port, &gpio_init_struct);
 
     HAL_ADC_Init(&adc_handle);
 
-    HAL_ADCEx_MultiModeConfigChannel(&adc_handle, &multimode);
+    //HAL_ADCEx_MultiModeConfigChannel(&adc_handle, &multimode);
 
     HAL_ADC_ConfigChannel(&adc_handle, &s_config);
 }
 
-bool Adc::init_adc_dma(DMA_Priority dma_priority, uint32_t dma_preempt_priority, uint32_t dma_sub_priority) {
+void Adc::init(DMA_Priority dma_priority, uint32_t dma_preempt_priority, uint32_t dma_sub_priority) {
     if (use_dma) {
-        Dma dma = Dma(get_adc_dma_channel(), dma_priority);
+        init();
+        // DMA instance could be either DMA2_Stream0 or DMA2_Stream4
+        DMA_Stream_TypeDef *dma_instance = DMA2_Stream0;
+        // DMA Channel
+        uint32_t dma_channel = DMA_CHANNEL_0;
+        Dma dma = Dma(dma_instance, dma_channel, dma_priority);
+        set_adc_dma_interrupts(dma_preempt_priority, dma_sub_priority);
         dma.init();
         __HAL_LINKDMA(&adc_handle,DMA_Handle,dma_handle);
-        dma.set_dma_interrupts(dma_preempt_priority, dma_sub_priority);
-        return true;
-    } else {
-        return false;
     }
 }
 
@@ -73,140 +76,83 @@ void Adc::set_multimode() {
 }
 
 void Adc::set_adc_config() {
-    s_config.Channel = channel;
-    s_config.Rank = ADC_REGULAR_RANK_1;
-    s_config.SingleDiff = ADC_SINGLE_ENDED;
-    s_config.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-    s_config.OffsetNumber = ADC_OFFSET_NONE;
+    s_config.Channel = set_adc_channel();
+    s_config.Rank = 1;
+    s_config.SamplingTime = ADC_SAMPLETIME_480CYCLES;
     s_config.Offset = 0;
 }
 
-void Adc::set_adc_channel() {
-    if (gpio_port == GPIOA) {
-        set_gpioa_channel();
-    }
-    if (gpio_port == GPIOB) {
-        set_gpiob_channel();
-    }
-    if (gpio_port == GPIOC) {
-        set_gpioc_channel();
-    }
-}
-
-void Adc::set_gpioa_channel() {
+uint32_t Adc::set_adc_channel() {
     if (pin_number == GPIO_PIN_0) {
-        channel = ADC_CHANNEL_1;
-        instance = ADC1;
+        return ADC_CHANNEL_0;
     }
     if (pin_number == GPIO_PIN_1) {
-        channel = ADC_CHANNEL_2;
-        instance = ADC1;
+        return ADC_CHANNEL_1;
     }
     if (pin_number == GPIO_PIN_2) {
-        channel = ADC_CHANNEL_3;
-        instance = ADC1;
+        return ADC_CHANNEL_2;
     }
     if (pin_number == GPIO_PIN_3) {
-        channel = ADC_CHANNEL_4;
-        instance = ADC1;
+        return ADC_CHANNEL_3;
     }
     if (pin_number == GPIO_PIN_4) {
-        channel = ADC_CHANNEL_1;
-        instance = ADC2;
+        return ADC_CHANNEL_4;
     }
     if (pin_number == GPIO_PIN_5) {
-        channel = ADC_CHANNEL_2;
-        instance = ADC2;
+        return ADC_CHANNEL_5;
     }
     if (pin_number == GPIO_PIN_6) {
-        channel = ADC_CHANNEL_3;
-        instance = ADC2;
+        return ADC_CHANNEL_6;
     }
     if (pin_number == GPIO_PIN_7) {
-        channel = ADC_CHANNEL_4;
-        instance = ADC2;
+        return ADC_CHANNEL_7;
     }
-}
-
-void Adc::set_gpiob_channel() {
-    if (pin_number == GPIO_PIN_0) {
-        channel = ADC_CHANNEL_12;
-        instance = ADC3;
+    if (pin_number == GPIO_PIN_8) {
+        return ADC_CHANNEL_8;
     }
-    if (pin_number == GPIO_PIN_1) {
-        channel = ADC_CHANNEL_1;
-        instance = ADC3;
+    if (pin_number == GPIO_PIN_9) {
+        return ADC_CHANNEL_9;
     }
-    if (pin_number == GPIO_PIN_2) {
-        channel = ADC_CHANNEL_12;
-        instance = ADC2;
+    if (pin_number == GPIO_PIN_10) {
+        return ADC_CHANNEL_10;
     }
     if (pin_number == GPIO_PIN_11) {
-        channel = ADC_CHANNEL_14;
-        instance = ADC1;
+        return ADC_CHANNEL_11;
     }
     if (pin_number == GPIO_PIN_12) {
-        channel = ADC_CHANNEL_3;
-        instance = ADC4;
+        return ADC_CHANNEL_12;
     }
     if (pin_number == GPIO_PIN_13) {
-        channel = ADC_CHANNEL_5;
-        instance = ADC3;
+        return ADC_CHANNEL_13;
     }
     if (pin_number == GPIO_PIN_14) {
-        channel = ADC_CHANNEL_4;
-        instance = ADC4;
+        return ADC_CHANNEL_14;
     }
     if (pin_number == GPIO_PIN_15) {
-        channel = ADC_CHANNEL_5;
-        instance = ADC4;
+        return ADC_CHANNEL_15;
     }
+    return 0;
 }
 
-void Adc::set_gpioc_channel() {
-    if (pin_number == GPIO_PIN_0) {
-        channel = ADC_CHANNEL_6;
-        instance = ADC1;
-    }
-    if (pin_number == GPIO_PIN_1) {
-        channel = ADC_CHANNEL_7;
-        instance = ADC1;
-    }
-    if (pin_number == GPIO_PIN_2) {
-        channel = ADC_CHANNEL_8;
-        instance = ADC1;
-    }
-    if (pin_number == GPIO_PIN_3) {
-        channel = ADC_CHANNEL_9;
-        instance = ADC1;
-    }
-    if (pin_number == GPIO_PIN_4) {
-        channel = ADC_CHANNEL_5;
-        instance = ADC2;
-    }
-    if (pin_number == GPIO_PIN_5) {
-        channel = ADC_CHANNEL_11;
-        instance = ADC2;
-    }
+void Adc::set_adc_dma_interrupts(uint32_t preempt_priority, uint32_t sub_priority) {
+    // For ADC1 DMA interrupt : DMA2_Stream0_IRQn or DMA2_Stream4_IRQn
+    HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, preempt_priority, sub_priority);
+    HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 }
 
-DMA_Channel_TypeDef *Adc::get_adc_dma_channel() {
-    DMA_Channel_TypeDef *dma_instance = {0};
-    if (instance == ADC1) {
-        dma_instance = DMA1_Channel1;
+void Adc::set_adc_max_converted_value() {
+    if (resolution == ADC_Resolution_6B) {
+        max_converted_value = 63;
     }
-    if (instance == ADC2) {
-        // Could be use either DMA2_Channel1 or DMA2_Channel3
-        dma_instance = DMA2_Channel1;
+    if (resolution == ADC_Resolution_8B) {
+        max_converted_value = 255;
     }
-    if (instance == ADC3) {
-        dma_instance = DMA2_Channel5;
+    if (resolution == ADC_Resolution_10B) {
+        max_converted_value = 1023;
     }
-    if (instance == ADC4) {
-        // Could be use either DMA2_Channel2 or DMA2_Channel4
-        dma_instance = DMA2_Channel2;
+    if (resolution == ADC_Resolution_12B) {
+        max_converted_value = 4095;
     }
-    return dma_instance;
 }
 
 void Adc::start_adc() {
@@ -218,8 +164,10 @@ void Adc::start_adc() {
 }
 
 uint32_t Adc::get_adc_value() {
-    HAL_ADC_PollForConversion(&adc_handle, 1000);
-    return HAL_ADC_GetValue(&adc_handle);
+    if (HAL_ADC_PollForConversion(&adc_handle, 1000) == HAL_OK) {
+        return HAL_ADC_GetValue(&adc_handle);
+    } else {
+        return 0;
+    }
 }
-
 

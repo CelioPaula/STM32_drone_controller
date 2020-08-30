@@ -45,8 +45,8 @@ bool Gpio_input::set_interrupt_priority(uint32_t preempt_priority, uint32_t sub_
             gpio_interrupt_pin[1] = pin_number;
         }
         if (pin_number == GPIO_PIN_2) {
-            HAL_NVIC_SetPriority(EXTI2_TSC_IRQn , preempt_priority, sub_priority);
-            HAL_NVIC_EnableIRQ(EXTI2_TSC_IRQn);
+            HAL_NVIC_SetPriority(EXTI2_IRQn, preempt_priority, sub_priority);
+            HAL_NVIC_EnableIRQ(EXTI2_IRQn);
             gpio_interrupt_pin[2] = pin_number;
         }
         if (pin_number == GPIO_PIN_3) {
@@ -117,40 +117,34 @@ Pwm_output::Pwm_output(GPIO_TypeDef *gpio_port, uint16_t pin_number, uint16_t ti
 }
 
 void Pwm_output::set_pwm_timer_instance() {
-    if (gpio_port == GPIOC) {
-        if (pin_number == GPIO_PIN_3) {
-            timer_instance = TIM1;
-            timer_channel = TIM_CHANNEL_4;
-        }
-        if (pin_number == GPIO_PIN_9) {
-            timer_instance = TIM8;
-            timer_channel = TIM_CHANNEL_4;
-        }
-    }
     if (gpio_port == GPIOA) {
         if (pin_number == GPIO_PIN_0) {
-            timer_instance = TIM2;
+            timer_instance = TIM5;
             timer_channel = TIM_CHANNEL_1;
         }
         if (pin_number == GPIO_PIN_1) {
-            timer_instance = TIM2;
+            timer_instance = TIM5;
             timer_channel = TIM_CHANNEL_2;
         }
-        if (pin_number == GPIO_PIN_4) {
-            timer_instance = TIM3;
-            timer_channel = TIM_CHANNEL_2;
+        if (pin_number == GPIO_PIN_2) {
+            timer_instance = TIM5;
+            timer_channel = TIM_CHANNEL_3;
+        }
+        if (pin_number == GPIO_PIN_3) {
+            timer_instance = TIM2;
+            timer_channel = TIM_CHANNEL_4;
         }
         if (pin_number == GPIO_PIN_6) {
             timer_instance = TIM3;
             timer_channel = TIM_CHANNEL_1;
         }
-        if (pin_number == GPIO_PIN_11) {
-            timer_instance = TIM4;
-            timer_channel = TIM_CHANNEL_1;
-        }
-        if (pin_number == GPIO_PIN_12) {
-            timer_instance = TIM4;
+        if (pin_number == GPIO_PIN_7) {
+            timer_instance = TIM3;
             timer_channel = TIM_CHANNEL_2;
+        }
+        if (pin_number == GPIO_PIN_11) {
+            timer_instance = TIM1;
+            timer_channel = TIM_CHANNEL_4;
         }
     }
     if (gpio_port == GPIOB) {
@@ -162,35 +156,39 @@ void Pwm_output::set_pwm_timer_instance() {
             timer_instance = TIM3;
             timer_channel = TIM_CHANNEL_4;
         }
-        if (pin_number == GPIO_PIN_10) {
+        if (pin_number == GPIO_PIN_3) {
             timer_instance = TIM2;
-            timer_channel = TIM_CHANNEL_3;
-        }
-        if (pin_number == GPIO_PIN_11) {
-            timer_instance = TIM2;
-            timer_channel = TIM_CHANNEL_4;
-        }
-        if (pin_number == GPIO_PIN_15) {
-            timer_instance = TIM15;
             timer_channel = TIM_CHANNEL_2;
         }
-        if (pin_number == GPIO_PIN_8) {
-            timer_instance = TIM4;
+        if (pin_number == GPIO_PIN_10) {
+            timer_instance = TIM2;
             timer_channel = TIM_CHANNEL_3;
         }
         if (pin_number == GPIO_PIN_9) {
             timer_instance = TIM4;
             timer_channel = TIM_CHANNEL_4;
         }
+        if (pin_number == GPIO_PIN_8) {
+            timer_instance = TIM4;
+            timer_channel = TIM_CHANNEL_3;
+        }
+        if (pin_number == GPIO_PIN_7) {
+            timer_instance = TIM4;
+            timer_channel = TIM_CHANNEL_2;
+        }
+        if (pin_number == GPIO_PIN_6) {
+            timer_instance = TIM4;
+            timer_channel = TIM_CHANNEL_1;
+        }
     }
 }
 
 void Pwm_output::set_alternate_function() {
     if (timer_instance == TIM1) {
-        gpio_init_struct.Alternate = GPIO_AF2_TIM1;
+        gpio_init_struct.Alternate = GPIO_AF1_TIM1;
     }
     if (timer_instance == TIM2) {
-        gpio_init_struct.Alternate = GPIO_AF2_TIM2;
+        gpio_init_struct.Alternate = GPIO_AF1_TIM2;
     }
     if (timer_instance == TIM3) {
         gpio_init_struct.Alternate = GPIO_AF2_TIM3;
@@ -198,17 +196,13 @@ void Pwm_output::set_alternate_function() {
     if (timer_instance == TIM4) {
         gpio_init_struct.Alternate = GPIO_AF2_TIM4;
     }
-    if (timer_instance == TIM8) {
-        gpio_init_struct.Alternate = GPIO_AF2_TIM8;
-    }
-    if (timer_instance == TIM15) {
-        gpio_init_struct.Alternate = GPIO_AF2_TIM15;
+    if (timer_instance == TIM5) {
+        gpio_init_struct.Alternate = GPIO_AF2_TIM5;
     }
 }
 
 void Pwm_output::init() {
     set_pwm_timer_instance();
-    //pwm_timer_clock_init(timer_instance);
     init_pwm_timer_struct();
     init_pwm_timer_clock_source_config();
     HAL_TIM_PWM_Init(&timer_handle);
@@ -221,7 +215,7 @@ void Pwm_output::init() {
 
 void Pwm_output::init_pwm_timer_struct() {
     /** TIMER FREQUENCY = (HCLOCK FREQ)/[(PERIOD + 1)x(PRESCALER + 1)] **/
-    /** Default HCLOCK FREQ : 72 MHz **/
+    /** Default HCLOCK FREQ : 84 MHz **/
     timer_handle.Instance = timer_instance;
     // TIMER PRESCALER : PR
     timer_handle.Init.Prescaler = prescaler;
@@ -268,12 +262,6 @@ void Pwm_output::set_duty_cycle(float duty_cyle) {
     }
     if (timer_channel == TIM_CHANNEL_4) {
         timer_handle.Instance->CCR4 = ccr;
-    }
-    if (timer_channel == TIM_CHANNEL_5) {
-        timer_handle.Instance->CCR5 = ccr;
-    }
-    if (timer_channel == TIM_CHANNEL_6) {
-        timer_handle.Instance->CCR6 = ccr;
     }
 }
 

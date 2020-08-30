@@ -108,12 +108,14 @@ SRC ?=
 SRC += $(SRC_FOLDER)/*.cpp
 SRC += $(SRC_FOLDER)/Drivers/*.cpp
 SRC += $(SRC_FOLDER)/maths/*.cpp
-SRC += $(SRC_FOLDER)/stm32f3_hal/*.c
+SRC += $(SRC_FOLDER)/actuators/*.cpp
+SRC += $(SRC_FOLDER)/stm32f4_hal/*.c
 
 CPPFLAGS += -I ./inc
 CPPFLAGS += -I ./inc/Drivers
-CPPFLAGS += -I ./inc/stm32f3_hal
+CPPFLAGS += -I ./inc/stm32f4_hal
 CPPFLAGS += -I ./inc/maths
+CPPFLAGS += -I ./inc/actuators
 
 # Startup file
 DEVICE_STARTUP = $(BASE_STARTUP)/$(SERIES_FOLDER)/$(MAPPED_DEVICE).s
@@ -162,6 +164,15 @@ clean:
 
 # Make flash
 flash:
+	st-flash erase
 	st-flash write $(BIN_FOLDER)/$(BIN_FILE_NAME) $(FLASH)
 
 .PHONY: all clean flash
+
+# Make erase
+erase:
+	st-flash erase
+
+# Make Debug
+debug:
+	openocd -f board/$(OPENOCD_BOARD).cfg
