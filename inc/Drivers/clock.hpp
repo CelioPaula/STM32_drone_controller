@@ -1,8 +1,7 @@
-#ifndef CLOCK_HPP
-#define CLOCK_HPP
-
 #pragma once
 #include "stm32f4xx_hal.h"
+
+#define H_CLOCK_FREQ 84000000
 
 /**
   * @brief System Clock Configuration
@@ -24,4 +23,6 @@ void adc_clock_init(ADC_TypeDef *adc_instance);
 
 void dma_clock_init();
 
-#endif // CLOCK_HPP
+void i2c_clock_init(I2C_TypeDef *i2c_instance);
+
+void timer_clock_init(TIM_TypeDef *timer_instance);

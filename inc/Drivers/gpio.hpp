@@ -1,10 +1,7 @@
-#ifndef GPIO_HPP
-#define GPIO_HPP
-
 #pragma once
 #include "stm32f4xx_hal.h"
 #include "Drivers/clock.hpp"
-
+#include "Drivers/timer.hpp"
 
 typedef enum {
     No_Pull = GPIO_NOPULL,
@@ -103,14 +100,9 @@ class Pwm_output : public Gpio_output {
 
         void set_duty_cycle(float duty_cyle);
 
-        uint32_t pwm_frequency;
         uint32_t duty_cycle;
 
-        static TIM_HandleTypeDef timer_handle;
-
-        TIM_TypeDef *timer_instance;
-
-        uint32_t timer_channel;
+        uint32_t desired_frequency;
 
     private:
 
@@ -126,11 +118,5 @@ class Pwm_output : public Gpio_output {
 
         void init_pwm_timer_master_config();
 
-
-
-        uint16_t period;
-
-        uint16_t prescaler;
+        Timer timer;
 };
-
-#endif // GPIO_HPP

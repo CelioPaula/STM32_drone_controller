@@ -3,6 +3,8 @@
 #include "Drivers/uart.hpp"
 #include <string.h>
 
+/* NOTE : STM32F401RE ADC GPIO port is always GPIOA */
+
 Adc::Adc(GPIO_TypeDef *gpio_port, uint16_t pin_number, ADC_Resolution adc_resolution, bool use_dma):
     max_converted_value(0),
     gpio_port(gpio_port), pin_number(pin_number),

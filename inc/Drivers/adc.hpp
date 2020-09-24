@@ -1,6 +1,3 @@
-#ifndef ADC_HPP
-#define ADC_HPP
-
 #pragma once
 #include "stm32f4xx_hal.h"
 #include "Drivers/clock.hpp"
@@ -64,6 +61,3 @@ class Adc {
 
         ADC_ChannelConfTypeDef s_config = {0};
 };
-
-
-#endif // ADC_HPP

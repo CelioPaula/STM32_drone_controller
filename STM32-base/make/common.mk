@@ -52,6 +52,7 @@ CPPFLAGS += -specs=nosys.specs
 # Flags - C Language Options
 CFLAGS += -ffreestanding
 CFLAGS += -Wold-style-cast
+CFLAGS += -Wunused-parameter
 
 # Flags - C++ Language Options
 CXXFLAGS += -fno-threadsafe-statics
@@ -109,13 +110,19 @@ SRC += $(SRC_FOLDER)/*.cpp
 SRC += $(SRC_FOLDER)/Drivers/*.cpp
 SRC += $(SRC_FOLDER)/maths/*.cpp
 SRC += $(SRC_FOLDER)/actuators/*.cpp
+SRC += $(SRC_FOLDER)/sensors/*.cpp
+SRC += $(SRC_FOLDER)/interfaces/*.cpp
+SRC += $(SRC_FOLDER)/controllers/*.cpp
 SRC += $(SRC_FOLDER)/stm32f4_hal/*.c
 
-CPPFLAGS += -I ./inc
-CPPFLAGS += -I ./inc/Drivers
-CPPFLAGS += -I ./inc/stm32f4_hal
-CPPFLAGS += -I ./inc/maths
-CPPFLAGS += -I ./inc/actuators
+CPPFLAGS += -I $(INC_FOLDER)
+CPPFLAGS += -I $(INC_FOLDER)/Drivers
+CPPFLAGS += -I $(INC_FOLDER)/stm32f4_hal
+CPPFLAGS += -I $(INC_FOLDER)/maths
+CPPFLAGS += -I $(INC_FOLDER)/actuators
+CPPFLAGS += -I $(INC_FOLDER)/controllers
+CPPFLAGS += -I $(INC_FOLDER)/interfaces
+CPPFLAGS += -I $(INC_FOLDER)/sensors
 
 # Startup file
 DEVICE_STARTUP = $(BASE_STARTUP)/$(SERIES_FOLDER)/$(MAPPED_DEVICE).s

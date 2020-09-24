@@ -1,6 +1,3 @@
-#ifndef DMA_HPP
-#define DMA_HPP
-
 #pragma once
 #include "stm32f4xx_hal.h"
 #include "Drivers/clock.hpp"
@@ -32,5 +29,3 @@ class Dma
         DMA_Priority dma_priority;
 
 };
-
-#endif // DMA_HPP

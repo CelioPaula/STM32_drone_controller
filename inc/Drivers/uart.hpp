@@ -1,6 +1,3 @@
-#ifndef UART_HPP
-#define UART_HPP
-
 #pragma once
 #include "stm32f4xx_hal.h"
 #include "Drivers/gpio.hpp"
@@ -50,6 +47,8 @@ class Uart {
         // Make sure to have both rx and tx pins on the same gpio port
         Uart(GPIO_TypeDef *gpio_port, uint16_t rx_pin, uint16_t tx_pin);
 
+        Uart(GPIO_TypeDef *gpio_port, uint16_t rx_pin, uint16_t tx_pin, uint32_t preempt_priority, uint32_t sub_priority);
+
         void init(uint32_t baudrate);
 
         void default_init(uint32_t baudrate);
@@ -62,26 +61,35 @@ class Uart {
 
         bool write(const char *tx_data);
 
-        char *read();
+        bool read();
+
+        bool start_reading_interrupt();
+
+#define UART_RX_BUFFER_SIZE 30
+
+        char rx_buffer[UART_RX_BUFFER_SIZE];
+
+        UART_HandleTypeDef uart_handler;
+
+        USART_TypeDef *instance;
 
     private:
+
+        void set_interrupt();
 
         GPIO_TypeDef* gpio_port;
 
         uint16_t rx_pin;
         uint16_t tx_pin;
 
-        UART_HandleTypeDef uart_handle;
+        uint32_t preempt_priority;
+        uint32_t sub_priority;
 
-        USART_TypeDef *instance;
-#define RX_BUFFER_SIZE 1000
-
-        char rx_buffer[RX_BUFFER_SIZE];
+        bool use_interrupt;
 
         void init_pinout(bool is_tx);
         void set_instance();
 };
 
-extern Uart uart;
-
-#endif // UART_HPP
+extern Uart uart_debug;
+extern Uart uart_com;

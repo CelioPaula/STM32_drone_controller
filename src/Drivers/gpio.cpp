@@ -107,166 +107,56 @@ void Gpio_output::toggle_state() {
     }
 }
 
-TIM_HandleTypeDef Pwm_output::timer_handle;
 
 Pwm_output::Pwm_output(GPIO_TypeDef *gpio_port, uint16_t pin_number, uint16_t timer_period, uint16_t timer_prescaler):
-    Gpio_output(gpio_port, pin_number, AlternatePushPull, SpeedUpTo_2MHz) {
-    period = timer_period;
-    prescaler = timer_prescaler;
-
-}
-
-void Pwm_output::set_pwm_timer_instance() {
-    if (gpio_port == GPIOA) {
-        if (pin_number == GPIO_PIN_0) {
-            timer_instance = TIM5;
-            timer_channel = TIM_CHANNEL_1;
-        }
-        if (pin_number == GPIO_PIN_1) {
-            timer_instance = TIM5;
-            timer_channel = TIM_CHANNEL_2;
-        }
-        if (pin_number == GPIO_PIN_2) {
-            timer_instance = TIM5;
-            timer_channel = TIM_CHANNEL_3;
-        }
-        if (pin_number == GPIO_PIN_3) {
-            timer_instance = TIM2;
-            timer_channel = TIM_CHANNEL_4;
-        }
-        if (pin_number == GPIO_PIN_6) {
-            timer_instance = TIM3;
-            timer_channel = TIM_CHANNEL_1;
-        }
-        if (pin_number == GPIO_PIN_7) {
-            timer_instance = TIM3;
-            timer_channel = TIM_CHANNEL_2;
-        }
-        if (pin_number == GPIO_PIN_11) {
-            timer_instance = TIM1;
-            timer_channel = TIM_CHANNEL_4;
-        }
-    }
-    if (gpio_port == GPIOB) {
-        if (pin_number == GPIO_PIN_0) {
-            timer_instance = TIM3;
-            timer_channel = TIM_CHANNEL_3;
-        }
-        if (pin_number == GPIO_PIN_1) {
-            timer_instance = TIM3;
-            timer_channel = TIM_CHANNEL_4;
-        }
-        if (pin_number == GPIO_PIN_3) {
-            timer_instance = TIM2;
-            timer_channel = TIM_CHANNEL_2;
-        }
-        if (pin_number == GPIO_PIN_10) {
-            timer_instance = TIM2;
-            timer_channel = TIM_CHANNEL_3;
-        }
-        if (pin_number == GPIO_PIN_9) {
-            timer_instance = TIM4;
-            timer_channel = TIM_CHANNEL_4;
-        }
-        if (pin_number == GPIO_PIN_8) {
-            timer_instance = TIM4;
-            timer_channel = TIM_CHANNEL_3;
-        }
-        if (pin_number == GPIO_PIN_7) {
-            timer_instance = TIM4;
-            timer_channel = TIM_CHANNEL_2;
-        }
-        if (pin_number == GPIO_PIN_6) {
-            timer_instance = TIM4;
-            timer_channel = TIM_CHANNEL_1;
-        }
-    }
+    Gpio_output(gpio_port, pin_number, AlternatePushPull, SpeedUpTo_2MHz),
+    timer(Timer(timer_period, timer_prescaler, gpio_port, pin_number)) {
+    desired_frequency = (H_CLOCK_FREQ)/(timer_prescaler * timer_period);
 }
 
 void Pwm_output::set_alternate_function() {
-    if (timer_instance == TIM1) {
+    if (timer.timer_instance == TIM1) {
         gpio_init_struct.Alternate = GPIO_AF1_TIM1;
     }
-    if (timer_instance == TIM2) {
+    if (timer.timer_instance == TIM2) {
         gpio_init_struct.Alternate = GPIO_AF1_TIM2;
     }
-    if (timer_instance == TIM3) {
+    if (timer.timer_instance == TIM3) {
         gpio_init_struct.Alternate = GPIO_AF2_TIM3;
     }
-    if (timer_instance == TIM4) {
+    if (timer.timer_instance == TIM4) {
         gpio_init_struct.Alternate = GPIO_AF2_TIM4;
     }
-    if (timer_instance == TIM5) {
+    if (timer.timer_instance == TIM5) {
         gpio_init_struct.Alternate = GPIO_AF2_TIM5;
     }
 }
 
 void Pwm_output::init() {
-    set_pwm_timer_instance();
-    init_pwm_timer_struct();
-    init_pwm_timer_clock_source_config();
-    HAL_TIM_PWM_Init(&timer_handle);
-    init_pwm_timer_master_config();
-    init_pwm_timer_output_compare();
-
+    timer.init();
     set_alternate_function();
     Gpio_output::init();
 }
 
-void Pwm_output::init_pwm_timer_struct() {
-    /** TIMER FREQUENCY = (HCLOCK FREQ)/[(PERIOD + 1)x(PRESCALER + 1)] **/
-    /** Default HCLOCK FREQ : 84 MHz **/
-    timer_handle.Instance = timer_instance;
-    // TIMER PRESCALER : PR
-    timer_handle.Init.Prescaler = prescaler;
-    timer_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
-    // TIMER AUTORELOAD : ARR
-    timer_handle.Init.Period = period;
-    timer_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    timer_handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    HAL_TIM_Base_Init(&timer_handle);
-}
-
-void Pwm_output::init_pwm_timer_clock_source_config() {
-    TIM_ClockConfigTypeDef clock_source_config = {0};
-    clock_source_config.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-    HAL_TIM_ConfigClockSource(&timer_handle, &clock_source_config);
-}
-
-void Pwm_output::init_pwm_timer_output_compare() {
-    TIM_OC_InitTypeDef output_compare_config = {0};
-    output_compare_config.OCMode = TIM_OCMODE_PWM1;
-    output_compare_config.Pulse = 0;
-    output_compare_config.OCPolarity = TIM_OCPOLARITY_HIGH;
-    output_compare_config.OCFastMode = TIM_OCFAST_DISABLE;
-    HAL_TIM_PWM_ConfigChannel(&timer_handle, &output_compare_config, timer_channel);
-}
-
-void Pwm_output::init_pwm_timer_master_config() {
-    TIM_MasterConfigTypeDef master_config = {0};
-    master_config.MasterOutputTrigger = TIM_TRGO_RESET;
-    master_config.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    HAL_TIMEx_MasterConfigSynchronization(&timer_handle, &master_config);
-}
 
 void Pwm_output::set_duty_cycle(float duty_cyle) {
-    uint32_t ccr = duty_cyle * (float)period;
-    if (timer_channel == TIM_CHANNEL_1) {
-        timer_handle.Instance->CCR1 = ccr;
+    uint32_t ccr = duty_cyle * (float)timer.period;
+    if (timer.channel == TIM_CHANNEL_1) {
+        timer.timer_handler.Instance->CCR1 = ccr;
     }
-    if (timer_channel == TIM_CHANNEL_2) {
-        timer_handle.Instance->CCR2 = ccr;
+    if (timer.channel == TIM_CHANNEL_2) {
+        timer.timer_handler.Instance->CCR2 = ccr;
     }
-    if (timer_channel == TIM_CHANNEL_3) {
-        timer_handle.Instance->CCR3 = ccr;
+    if (timer.channel == TIM_CHANNEL_3) {
+        timer.timer_handler.Instance->CCR3 = ccr;
     }
-    if (timer_channel == TIM_CHANNEL_4) {
-        timer_handle.Instance->CCR4 = ccr;
+    if (timer.channel == TIM_CHANNEL_4) {
+        timer.timer_handler.Instance->CCR4 = ccr;
     }
 }
 
 void Pwm_output::start() {
-    HAL_TIM_PWM_Start(&timer_handle, timer_channel);
+    HAL_TIM_PWM_Start(&timer.timer_handler, timer.channel);
 }
 
 extern "C" {

@@ -91,7 +91,7 @@
                                    STM32F303R6 and STM32F303R8 Devices */
   /* #define STM32F303xC */   /*!< STM32F303CB, STM32F303CC, STM32F303RB, STM32F303RC,
                                    STM32F303VB and STM32F303VC Devices */
-     #define STM32F303xE      /*!< STM32F303RE, STM32F303VE, STM32F303ZE, STM32F303RD,
+  /* #define STM32F303xE */    /*!< STM32F303RE, STM32F303VE, STM32F303ZE, STM32F303RD,
                                    STM32F303VD and STM32F303ZD Devices */
   /* #define STM32F373xC */   /*!< STM32F373C8, STM32F373CB, STM32F373CC,
                                    STM32F373R8, STM32F373RB, STM32F373RC,

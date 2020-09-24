@@ -1,32 +1,16 @@
-#include "init.h"
+#include "init.hpp"
+#include "interfaces/global_interface.hpp"
+
+uint32_t adc_input_value = 0;
 
 int main (void) {
 
     init_all();
 
-    Adc adc_input = Adc(GPIOA, GPIO_PIN_0, ADC_Resolution_12B, false);
-    Brushless motor_1 = Brushless(GPIOA, GPIO_PIN_6, adc_input.max_converted_value);
-    //Gpio_output led = Gpio_output(GPIOA, GPIO_PIN_5, Push_Pull, SpeedUpTo_2MHz);
-    //Gpio_input btn = Gpio_input(GPIOC, GPIO_PIN_4, EXTIT_RisingEdge, Pull_Up);
+    std::string s = "Received : ";
 
-    //led.init();
-    //btn.init();
-    //btn.set_interrupt_priority(0, 0);
-
-    adc_input.init();
-    //adc_input.init(DMA_Priority_Low, 0, 0);
-    motor_1.init();
-
-    adc_input.start_adc();
-
-    uint32_t adc_input_value = 0;
-    std::string s;
     while (1) {
-        s = "ADC value : ";
-        adc_input_value = adc_input.get_adc_value();
-        motor_1.set_speed(adc_input_value);
-        s.append(std::to_string(adc_input_value));
-        uart.write(s.c_str());
+        //mpu6050.display();
     }
 
     // Return 0 to satisfy compiler
@@ -34,6 +18,32 @@ int main (void) {
 }
 
 extern "C" {
+    void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+        if (htim->Instance == IMU_scheduler.timer_instance) {
+            //if (mpu6050.is_ready) {
+                float scheduler_period = 1/(float)IMU_scheduler.desired_frequency;
+                //mpu6050.get_raw_gyro_angles(scheduler_period);
+                //mpu6050.get_filtered_angles(scheduler_period, 0.98);
+
+                /*pid_roll.process_pid(scheduler_period);
+                pid_pitch.process_d(scheduler_period);
+                */
+
+                //mpu6050.display();
+                motor_FR.set_speed(commands.desired_throttle);
+                motor_BR.set_speed(commands.desired_throttle);
+                motor_FL.set_speed(commands.desired_throttle);
+                motor_BL.set_speed(commands.desired_throttle);
+           // }
+        }
+    }
+
+    void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+        if (huart->Instance == uart_com.instance) {
+            uart_com.start_reading_interrupt();
+            process_messages();
+        }
+    }
 
     /*void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
         if (GPIO_Pin == btn.pin_number) led.toggle_state();

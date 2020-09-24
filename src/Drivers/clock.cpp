@@ -79,23 +79,41 @@ void dma_clock_init() {
     __HAL_RCC_DMA2_CLK_ENABLE();
 }
 
-void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
+void i2c_clock_init(I2C_TypeDef *i2c_instance) {
+    if (i2c_instance == (I2C_TypeDef *)I2C1) {
+        __HAL_RCC_I2C1_CLK_ENABLE();
+    }
+    if (i2c_instance == (I2C_TypeDef *)I2C2) {
+        __HAL_RCC_I2C2_CLK_ENABLE();
+    }
+    if (i2c_instance == (I2C_TypeDef *)I2C3) {
+        __HAL_RCC_I2C3_CLK_ENABLE();
+    }
+}
+
+
+// TODO : change into timer_clock_init()
+void timer_clock_init(TIM_TypeDef *timer_instance)
 {
   // Peripheral clock enable
-  if(htim_base->Instance==TIM1)
+  if(timer_instance == TIM1)
   {
     __HAL_RCC_TIM1_CLK_ENABLE();
   }
-  if(htim_base->Instance==TIM2)
+  if(timer_instance == TIM2)
   {
     __HAL_RCC_TIM2_CLK_ENABLE();
   }
-  if(htim_base->Instance==TIM3)
+  if(timer_instance == TIM3)
   {
     __HAL_RCC_TIM3_CLK_ENABLE();
   }
-  if(htim_base->Instance==TIM4)
+  if (timer_instance == TIM4)
   {
     __HAL_RCC_TIM4_CLK_ENABLE();
+  }
+  if (timer_instance == TIM5)
+  {
+    __HAL_RCC_TIM5_CLK_ENABLE();
   }
 }
