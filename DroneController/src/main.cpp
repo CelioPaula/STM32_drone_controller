@@ -11,6 +11,7 @@ int main (void) {
 
     while (1) {
         //mpu6050.display();
+
     }
 
     // Return 0 to satisfy compiler
@@ -42,6 +43,9 @@ extern "C" {
         if (huart->Instance == uart_com.instance) {
             uart_com.start_reading_interrupt();
             process_messages();
+            send_feedback();
+            pid_pitch.set_pid_values(configuration.pitch_kp, configuration.pitch_ki, configuration.pitch_kd);
+            pid_roll.set_pid_values(configuration.roll_kp, configuration.roll_ki, configuration.roll_kd);
         }
     }
 

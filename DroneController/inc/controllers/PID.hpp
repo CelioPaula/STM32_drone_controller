@@ -5,8 +5,9 @@ class PID {
 
     public:
 
-        PID(float kp, float ki, float kd);
+        PID();
 
+        void set_pid_values(float kp, float ki, float kd);
         void process_p(float target_value, float current_value);
         void process_i(float target_value, float current_value);
         void process_d(float target_value, float current_value, float elapsed_time);

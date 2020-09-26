@@ -10,8 +10,8 @@ Timer IMU_scheduler = Timer(1000, 8400);
 IMU mpu6050 = IMU(GPIOC, GPIO_PIN_9, GPIOA, GPIO_PIN_8, GyroSpeed_250, AccelSpeed_4G);
 Uart uart_com = Uart(GPIOA, GPIO_PIN_10, GPIO_PIN_9, 0, 0);
 Uart uart_debug = Uart(GPIOA, GPIO_PIN_3, GPIO_PIN_2);
-PID pid_roll = PID(4, 0, 0);
-PID pid_pitch = PID(4, 0, 0);
+PID pid_roll = PID();
+PID pid_pitch = PID();
 
 void init_all() {
 

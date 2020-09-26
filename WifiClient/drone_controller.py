@@ -27,8 +27,12 @@ YAW_STEP = 5
 commands = {"desired_roll" : MAX_ROLL/2, "desired_pitch" : MAX_PITCH/2, "desired_yaw" : MAX_YAW/2, "desired_throttle" : MIN_THROTTLE}
 
 def configure_controller():
-    configuration = {"pitch_kp" : pitch_kp, "pitch_kp" : pitch_ki, "pitch_kp" : pitch_kd, "pitch_kp" : roll_kp, "pitch_kp" : roll_ki, "pitch_kp" : roll_kd}
-    send_configuration(configuration)
+    print("Waiting for drone controller configuration : pitch [Kp : {0}, Ki : {1}, Kd: : {2}] | roll [Kp : {3}, Ki : {4}, Kd: : {5}]".format(pitch_kp, pitch_ki, pitch_kd, roll_kp, roll_ki, roll_kd))
+    while not is_controller_configured():
+        configuration = {"pitch_kp" : pitch_kp, "pitch_ki" : pitch_ki, "pitch_kd" : pitch_kd, "roll_kp" : roll_kp, "roll_ki" : roll_ki, "roll_kd" : roll_kd}
+        send_configuration(configuration)
+    print("Drone controller configured")
+    time.sleep(2.0)
 
 def set_controller_commands(joysticks_values, triggers_values):
     if triggers_values[0]:
@@ -57,5 +61,3 @@ def set_controller_commands(joysticks_values, triggers_values):
         commands["desired_yaw"] = MIN_YAW
     if commands["desired_yaw"] >= MAX_YAW:
         commands["desired_yaw"] = MAX_YAW
-
-    print(commands)

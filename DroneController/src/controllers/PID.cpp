@@ -1,13 +1,18 @@
 #include "PID.hpp"
 #include "maths/math.hpp"
 
-PID::PID(float kp, float ki, float kd) :
-    kp(kp), ki(ki), kd(kd) {
+PID::PID() {
     error = 0;
     is_constrained = false;
     previous_error = 0;
     kp_result = ki_result = kd_result = pid_result = 0;
     use_full_pid = false;
+}
+
+void PID::set_pid_values(float kp, float ki, float kd) {
+    PID::kp = kp;
+    PID::ki = ki;
+    PID::kd = kd;
 }
 
 void PID::constrain(int32_t min_result, int32_t max_result) {

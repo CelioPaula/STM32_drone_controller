@@ -9,21 +9,12 @@ ESP_32_SERVER_PORT = 82
 
 if __name__ == "__main__":
     if init_gamepad():
-        #if(socket_connect(ESP_32_SERVER_ADDRESS, ESP_32_SERVER_PORT)):
-        while True:
-            get_buttons_values()
-            set_controller_commands(joysticks_axis, upper_triggers)
-            time.sleep(0.01)
-            """if joysticks_axis and upper_triggers:
-                print(upper_triggers)"""
-            """if len(joysticks_values) != 0:
-                print(joysticks_values)"""
-        """if configure_controller():
+        if(socket_connect(ESP_32_SERVER_ADDRESS, ESP_32_SERVER_PORT)):
+            configure_controller()
             while True:
-                joysticks_values = get_joysticks_axis()
-                print(joysticks_values)"""
-
-
-
+                get_buttons_values()
+                set_controller_commands(joysticks_axis, upper_triggers)
+                send_commands(commands)
+                time.sleep(0.01)
     socket_disconnect()
     deinit_gamepad()

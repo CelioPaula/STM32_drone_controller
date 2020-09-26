@@ -17,7 +17,12 @@ camera_config_t cam_config;
 
 char buff[10];
 
+String client_received_data = "";
+char controller_received_data[10];
+int data_index = 0;
+
 WiFiServer server(82);
+WiFiClient client;
 
 void startCameraServer();
 
@@ -39,34 +44,39 @@ void setup() {
 }
 
 void loop() {
-  transmit_commands();
-  transmit_feedbacks();  
-}
-
-void transmit_commands() {
-  WiFiClient client = server.available();
+  client = server.available();
   if (client) {
-    Serial.println("Client available");
-        String received_data = "";
-        while (client.connected()) {
-          if (client.available() > 0) {
-            char c = client.read();
-            if (c != '\n') {
-              received_data += c;
-            } else {
-              Serial.println(received_data);
-              received_data = "";
-              /*buff[0] = (uint8_t)0x10;
-              client.write(buff, 10);*/
-            }
-          }
-        }
-        client.stop();
+    while(client.connected()) {
+      transmit_client_data();
+      transmit_controller_data(); 
+    }
+    client.stop();
   }
 }
 
-void transmit_feedbacks() {
-  
+void transmit_client_data() {
+  if (client.available() > 0) {
+    char c = client.read();
+    if (c != '\n') {
+      client_received_data += c;
+    } else {
+      Serial.println(client_received_data);
+      client_received_data = "";
+    }
+  }
+}
+
+void transmit_controller_data() {
+  if (Serial.available() > 0) {
+    char c = Serial.read();
+    if (c != '\n' && c != '\r') {
+      controller_received_data[data_index] = c;
+      data_index++;
+    } else {
+      client.write(controller_received_data, sizeof(controller_received_data));
+      data_index = 0;
+    }
+  }
 }
 
 void configure_esp_cam() {
