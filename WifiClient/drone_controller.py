@@ -10,54 +10,53 @@ roll_kd = 6
 
 MAX_THROTTLE = 2000
 MIN_THROTTLE = 0
-THROTTLE_STEP = 5
 
 MAX_ROLL = 2000
 MIN_ROLL = 0
-ROLL_STEP = 5
 
 MAX_PITCH = 2000
 MIN_PITCH = 0
-PITCH_STEP = 5
 
 MAX_YAW = 2000
 MIN_YAW = 0
-YAW_STEP = 5
 
 commands = {"desired_roll" : MAX_ROLL/2, "desired_pitch" : MAX_PITCH/2, "desired_yaw" : MAX_YAW/2, "desired_throttle" : MIN_THROTTLE}
+feedback = {"roll": 0, "pitch": 0, "yaw": 0, "throttle": 0, "battery_voltage": 0}
 
 def configure_controller():
-    print("Waiting for drone controller configuration : pitch [Kp : {0}, Ki : {1}, Kd: : {2}] | roll [Kp : {3}, Ki : {4}, Kd: : {5}]".format(pitch_kp, pitch_ki, pitch_kd, roll_kp, roll_ki, roll_kd))
+    print("Waiting for drone controller configuration : pitch [Kp : {0}, Ki : {1}, Kd: : {2}] | roll [Kp : {3}, Ki : {4}, Kd: : {5}]\r".format(pitch_kp, pitch_ki, pitch_kd, roll_kp, roll_ki, roll_kd))
     while not is_controller_configured():
         configuration = {"pitch_kp" : pitch_kp, "pitch_ki" : pitch_ki, "pitch_kd" : pitch_kd, "roll_kp" : roll_kp, "roll_ki" : roll_ki, "roll_kd" : roll_kd}
         send_configuration(configuration)
-    print("Drone controller configured")
+    print("Drone controller configured\r")
     time.sleep(2.0)
 
-def set_controller_commands(joysticks_values, triggers_values):
-    if triggers_values[0]:
-        commands["desired_throttle"] -= THROTTLE_STEP
-        if commands["desired_throttle"] <= MIN_THROTTLE:
-            commands["desired_throttle"] = MIN_THROTTLE
-    if triggers_values[1]:
-        commands["desired_throttle"] += THROTTLE_STEP
-        if commands["desired_throttle"] >= MAX_THROTTLE:
-            commands["desired_throttle"] = MAX_THROTTLE
+def get_current_state():
+    while not get_controller_feedback():
+        send_flag(ConfigurationFlag.GetCurrentState.value)
+        continue
+    commands["desired_roll"] = feedback["roll"]
+    commands["desired_pitch"] = feedback["pitch"]
+    commands["desired_yaw"] = feedback["yaw"]
+    commands["desired_throttle"] = feedback["throttle"]
 
-    commands["desired_pitch"] += int(joysticks_values[0] * PITCH_STEP)
-    if commands["desired_pitch"] <= MIN_PITCH:
-        commands["desired_pitch"] = MIN_PITCH
-    if commands["desired_pitch"] >= MAX_PITCH:
-        commands["desired_pitch"] = MAX_PITCH
-
-    commands["desired_roll"] += int(joysticks_values[1] * ROLL_STEP)
-    if commands["desired_roll"] <= MIN_ROLL:
-        commands["desired_roll"] = MIN_ROLL
-    if commands["desired_roll"] >= MAX_ROLL:
-        commands["desired_roll"] = MAX_ROLL
-
-    commands["desired_yaw"] += int(joysticks_values[3] * YAW_STEP)
-    if commands["desired_yaw"] <= MIN_YAW:
-        commands["desired_yaw"] = MIN_YAW
-    if commands["desired_yaw"] >= MAX_YAW:
-        commands["desired_yaw"] = MAX_YAW
+def get_controller_feedback():
+    start = False
+    sub_string = ""
+    str_data = receive_feedback()
+    if str_data != "":
+        if str_data.find("{") != -1 and str_data.find("}") != -1 and str_data.find(chr(MessageHeader.Data.value)) != -1:
+            for c in str_data:
+                if c == ':':
+                    start = True
+                if c == '}':
+                    feedback_values = sub_string.split('|')
+                    index = 0
+                    print(str(feedback_values))
+                    for key in feedback:
+                        feedback[key] = float(feedback_values[index])
+                        index += 1
+                    return True
+                if start and c != ':' and c != '}':
+                    sub_string += c
+    return False

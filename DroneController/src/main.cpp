@@ -7,7 +7,6 @@ int main (void) {
 
     init_all();
 
-    std::string s = "Received : ";
 
     while (1) {
         //mpu6050.display();
@@ -21,31 +20,35 @@ int main (void) {
 extern "C" {
     void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
         if (htim->Instance == IMU_scheduler.timer_instance) {
-            //if (mpu6050.is_ready) {
+            if (mpu6050.is_ready) {
                 float scheduler_period = 1/(float)IMU_scheduler.desired_frequency;
                 //mpu6050.get_raw_gyro_angles(scheduler_period);
-                //mpu6050.get_filtered_angles(scheduler_period, 0.98);
+                mpu6050.get_filtered_angles(scheduler_period, 0.98);
 
                 /*pid_roll.process_pid(scheduler_period);
                 pid_pitch.process_d(scheduler_period);
                 */
 
-                //mpu6050.display();
+
+                mpu6050.display();
                 motor_FR.set_speed(commands.desired_throttle);
                 motor_BR.set_speed(commands.desired_throttle);
                 motor_FL.set_speed(commands.desired_throttle);
                 motor_BL.set_speed(commands.desired_throttle);
-           // }
+           }
         }
     }
 
     void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         if (huart->Instance == uart_com.instance) {
             uart_com.start_reading_interrupt();
-            process_messages();
+            process_receives();
             send_feedback();
             pid_pitch.set_pid_values(configuration.pitch_kp, configuration.pitch_ki, configuration.pitch_kd);
             pid_roll.set_pid_values(configuration.roll_kp, configuration.roll_ki, configuration.roll_kd);
+            std::string s = "Received : ";
+            s.append(std::to_string(commands.desired_throttle));
+            uart_debug.write(s.c_str());
         }
     }
 

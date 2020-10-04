@@ -15,10 +15,10 @@ const char* password = "freineda";
 
 camera_config_t cam_config;
 
-char buff[10];
+char buff[30];
 
 String client_received_data = "";
-char controller_received_data[10];
+char controller_received_data[30];
 int data_index = 0;
 
 WiFiServer server(82);

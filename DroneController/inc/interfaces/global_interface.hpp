@@ -22,13 +22,15 @@ typedef struct {
 typedef enum {
     Configuration = 0x10,
     Data = 0x11,
+    Flag = 0x12,
 }MessageHeader;
 
 typedef enum {
     ControllerConfigured = 0x20,
-}ConfigurationFlag;
+    GetCurrentState = 0x21,
+}FlagMessage;
 
-void process_messages();
+void process_receives();
 void send_feedback();
 
 extern std::string received_commands;
@@ -36,3 +38,5 @@ extern DroneCommands commands;
 extern ControllerConfiguration configuration;
 extern MessageHeader current_message_type;
 extern bool send_new_message;
+extern FlagMessage received_flag;
+extern float battery_voltage;

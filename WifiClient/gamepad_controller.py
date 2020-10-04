@@ -1,102 +1,80 @@
 import pygame, sys, time
+from drone_controller import *
 
-joystick = None
+THROTTLE_STEP = 2
+PITCH_STEP = 2
+ROLL_STEP = 2
+YAW_STEP = 2
 
-upper_triggers = [0, 0]
-joysticks_axis = [0, 0, 0, 0, 0, 0]
+class Gamepad_controller:
+    def __init__(self):
+        self.upper_triggers = [0, 0]
+        self.joysticks_axis = [0, 0, 0, 0, 0, 0]
+        self.emergency_button = False
+        self.joystick = None
 
-def init_joysticks():
-    try:
-        global joystick
-        joystick = pygame.joystick.Joystick(0)
-        print(joystick)
-    except pygame.error as e:
-        return False
-    else:
-        joystick.init()
-        return True
+        self.throttle_step = THROTTLE_STEP
+        self.pitch_step = PITCH_STEP
+        self.roll_step = ROLL_STEP
+        self.yaw_step = YAW_STEP
 
-def init_gamepad():
-    pygame.init()
-    pygame.joystick.init()
-    if not init_joysticks():
-        print("There is no connected gamepad. Please connect a gamepad and then restart the application")
-        return False
-    else :
-        print("A gamepad is connected")
-        return True
+        pygame.init()
+        pygame.joystick.init()
+        self.is_joystick_detected = self.init_joysticks()
 
-def deinit_gamepad():
-    pygame.joystick.quit()
-    pygame.quit()
+    def is_connected(self):
+        if not self.is_joystick_detected:
+            return False
+        else:
+            return True
 
-def get_buttons_values():
-    for event in pygame.event.get():
-        get_joysticks_axis()
-        get_upper_triggers()
+    def init_joysticks(self):
+        try:
+            self.joystick = pygame.joystick.Joystick(0)
+        except pygame.error as e:
+            return False
+        else:
+            self.joystick.init()
+            return True
 
-def get_joysticks_axis():
-    axis_values = []
-    for axis_index in range(0, joystick.get_numaxes()):
-        joysticks_axis[axis_index] = joystick.get_axis(axis_index)
+    def deinit(self):
+        pygame.joystick.quit()
+        pygame.quit()
 
-def get_upper_triggers():
-    upper_triggers[0] = joystick.get_button(4)
-    upper_triggers[1] = joystick.get_button(5)
+    def get_buttons_values(self):
+        for event in pygame.event.get():
+            for axis_index in range(0, self.joystick.get_numaxes()):
+                self.joysticks_axis[axis_index] = self.joystick.get_axis(axis_index)
+            self.upper_triggers[0] = self.joystick.get_button(4)
+            self.upper_triggers[1] = self.joystick.get_button(5)
+            if self.joystick.get_button(10):
+                self.emergency_button = True
 
-"""joystick = pygame.joystick.Joystick(0)
-joystick.init()  # Initializes Joystick
+    def set_controller_commands(self):
+        self.get_buttons_values()
+        if self.upper_triggers[0]:
+            commands["desired_throttle"] -= self.throttle_step
+            if commands["desired_throttle"] <= MIN_THROTTLE:
+                commands["desired_throttle"] = MIN_THROTTLE
+        if self.upper_triggers[1]:
+            commands["desired_throttle"] += self.throttle_step
+            if commands["desired_throttle"] >= MAX_THROTTLE:
+                commands["desired_throttle"] = MAX_THROTTLE
+        commands["desired_pitch"] += round(self.joysticks_axis[0]) * self.pitch_step
+        if commands["desired_pitch"] <= MIN_PITCH:
+            commands["desired_pitch"] = MIN_PITCH
+        if commands["desired_pitch"] >= MAX_PITCH:
+            commands["desired_pitch"] = MAX_PITCH
 
-# get count of joysticks=1, axes=27, buttons=19 for DualShock 3
+        commands["desired_roll"] += round(self.joysticks_axis[1]) * self.roll_step
+        if commands["desired_roll"] <= MIN_ROLL:
+            commands["desired_roll"] = MIN_ROLL
+        if commands["desired_roll"] >= MAX_ROLL:
+            commands["desired_roll"] = MAX_ROLL
 
-joystick_count = pygame.joystick.get_count()
-print("joystick_count")
-print(joystick_count)
-print("--------------")
-
-numaxes = joystick.get_numaxes()
-print("numaxes")
-print(numaxes)
-print("--------------")
-
-numbuttons = joystick.get_numbuttons()
-print("numbuttons")
-print(numbuttons)
-print("--------------")
-
-loopQuit = False
-while loopQuit == False:
-
-    # test joystick axes and prints values
-    for i in range(0, numaxes):
-        print(str(joystick.get_axis(i)))
-
-     # test controller buttons
-    outstr = ""
-    for i in range(0, numbuttons):
-        button = joystick.get_button(i)
-        outstr = outstr + str(i) + ":" + str(button) + "|"
-    print(outstr)
-
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            loopQuit = True
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                loopQuit = True
-
-        # Returns Joystick Button Motion
-        if event.type == pygame.JOYBUTTONDOWN:
-            print("joy button down")
-        if event.type == pygame.JOYBUTTONUP:
-            print("joy button up")
-        if event.type == pygame.JOYBALLMOTION:
-            print("joy ball motion")
-        # axis motion is movement of controller
-        # dominates events when used
-        #if event.type == pygame.JOYAXISMOTION:
-    # print("joy axis motion")
-
-    time.sleep(0.01)"""
-"""pygame.quit()
-sys.exit()"""
+        commands["desired_yaw"] += round(self.joysticks_axis[3]) * self.yaw_step
+        if commands["desired_yaw"] <= MIN_YAW:
+            commands["desired_yaw"] = MIN_YAW
+        if commands["desired_yaw"] >= MAX_YAW:
+            commands["desired_yaw"] = MAX_YAW
+        return self.emergency_button
