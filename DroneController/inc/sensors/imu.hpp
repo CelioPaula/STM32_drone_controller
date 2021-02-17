@@ -27,24 +27,34 @@ class IMU
 
         bool configure();
 
-        void calibrate_gyro(int16_t iterations);
+        void calibrate_gyro();
+
+        void calibrate_accel();
+
+        bool get_raw_accel_data();
+
+        bool get_raw_gyro_data();
 
         bool get_acceleration();
 
-        bool get_angular_speed();
+        bool get_gyro_angular_speed();
 
-        bool get_raw_gyro_angles(float timer_period);
+        bool get_raw_gyro_angles();
 
         bool get_raw_accel_angles();
 
-        bool get_filtered_angles(float timer_period, float filtering_rate);
+        bool get_filtered_angles(float filtering_rate);
 
         void display();
 
         typedef struct {
-            float x_offset;
-            float y_offset;
-            float z_offset;
+            int16_t raw_x_data;
+            int16_t raw_y_data;
+            int16_t raw_z_data;
+
+            int16_t raw_x_offset;
+            int16_t raw_y_offset;
+            int16_t raw_z_offset;
 
             float x_angular_speed;
             float y_angular_speed;
@@ -56,9 +66,17 @@ class IMU
         }Gyro;
 
         typedef struct {
-            float x_accel;
-            float y_accel;
-            float z_accel;
+            int16_t raw_x_data;
+            int16_t raw_y_data;
+            int16_t raw_z_data;
+
+            int16_t raw_x_offset;
+            int16_t raw_y_offset;
+            int16_t raw_z_offset;
+
+            int16_t x_accel;
+            int16_t y_accel;
+            int16_t z_accel;
 
             float raw_pitch;
             float raw_roll;
@@ -71,7 +89,11 @@ class IMU
         float roll;
         float yaw;
 
-        bool is_ready;
+        bool is_gyro_calibrated;
+        bool is_accel_calibrated;
+        bool is_threshold_reached;
+
+        uint32_t last_time;
 
     private:
 
@@ -117,4 +139,14 @@ class IMU
         Accel_Speed accel_speed;
 
         I2C i2c;
+
+        const uint16_t MAX_GYRO_CALIB_SAMPLES = 10;
+        const uint16_t MAX_ACCEL_CALIB_SAMPLES = 10;
+        const uint32_t GYRO_CALIB_DELAY = 100;
+        const uint32_t ACCEL_CALIB_DELAY = 100;
+
+        const float MAX_PITCH_THRESHOLD = 30.0;
+        const float MIN_PITCH_THRESHOLD = -30.0;
+        const float MAX_ROLL_THRESHOLD = 30.0;
+        const float MIN_ROLL_THRESHOLD = -30.0;
 };

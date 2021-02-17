@@ -13,13 +13,16 @@
 const char* ssid = "ESP32_CAM";
 const char* password = "freineda";
 
+const int MAX_COMMAND_PARAMETER_SIZE = 50;
+// MAX_COMMAND_BUFFER_SIZE = START_BYTE + OP_CODE + MAX_COMMAND_PARAMETER_SIZE + CHECKSUM
+// MAX_COMMAND_BUFFER_SIZE = 1 + 1 + 64 + 1 = 64 + 3
+static const uint16_t MAX_COMMAND_BUFFER_SIZE = MAX_COMMAND_PARAMETER_SIZE + 3;
+byte client_buffer[MAX_COMMAND_BUFFER_SIZE];
+int client_buffer_index = 0;
+byte controller_buffer[MAX_COMMAND_BUFFER_SIZE];
+int controller_buffer_index = 0;
+
 camera_config_t cam_config;
-
-char buff[30];
-
-String client_received_data = "";
-char controller_received_data[30];
-int data_index = 0;
 
 WiFiServer server(82);
 WiFiClient client;
@@ -27,19 +30,12 @@ WiFiClient client;
 void startCameraServer();
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   WiFi.softAP(ssid, password);
-  Serial.println("IP Address : ");
-  Serial.println(WiFi.softAPIP());
-  
+
   configure_esp_cam();
   startCameraServer();
-
-  Serial.print("Camera Ready! Use 'http://");
-  Serial.print(WiFi.softAPIP());
-  Serial.println("' to connect");
-
   server.begin();
 }
 
@@ -56,25 +52,26 @@ void loop() {
 
 void transmit_client_data() {
   if (client.available() > 0) {
-    char c = client.read();
-    if (c != '\n') {
-      client_received_data += c;
+    byte c = client.read();
+    if (client_buffer_index >= MAX_COMMAND_BUFFER_SIZE) {
+      client_buffer_index = 0;
+      Serial.write(client_buffer, MAX_COMMAND_BUFFER_SIZE);
     } else {
-      Serial.println(client_received_data);
-      client_received_data = "";
+      client_buffer[client_buffer_index] = c;
+      client_buffer_index++;
     }
   }
 }
 
 void transmit_controller_data() {
   if (Serial.available() > 0) {
-    char c = Serial.read();
-    if (c != '\n' && c != '\r') {
-      controller_received_data[data_index] = c;
-      data_index++;
+    byte c = Serial.read();
+    if (controller_buffer_index >= MAX_COMMAND_BUFFER_SIZE) {
+      controller_buffer_index = 0;
+      client.write(controller_buffer, MAX_COMMAND_BUFFER_SIZE);
     } else {
-      client.write(controller_received_data, sizeof(controller_received_data));
-      data_index = 0;
+      controller_buffer[controller_buffer_index] = c;
+      controller_buffer_index++; 
     }
   }
 }

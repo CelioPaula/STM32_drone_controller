@@ -12,10 +12,12 @@
 #include "actuators/brushless.hpp"
 #include "sensors/imu.hpp"
 #include "controllers/PID.hpp"
+#include "interfaces/ESP32.hpp"
+#include "interfaces/drone_interface.hpp"
 
-extern Timer IMU_scheduler;
 extern PID pid_roll;
 extern PID pid_pitch;
+extern PID pid_yaw;
 
 //extern Adc adc_input;
 
@@ -26,6 +28,7 @@ extern Brushless motor_BL;
 
 
 extern IMU mpu6050;
+extern uint32_t time_ms;
 
 void init_all();
 

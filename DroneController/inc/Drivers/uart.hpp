@@ -1,31 +1,38 @@
 #pragma once
 #include "stm32f4xx_hal.h"
-#include "Drivers/gpio.hpp"
-#include "Drivers/clock.hpp"
+#include "clock.hpp"
 #include <string>
 
+// UART Instance (Those instances are based only on the STM32F401RE board)
+typedef enum {
+    // USART Instance 1 (RX : PA10 & TX : PA9)
+    USART_Inst_1 = USART1_BASE,
+    // USART Instance 2 (RX : PA3 & TX : PA2)
+    USART_Inst_2 = USART2_BASE,
+    // USART Instance 6 (RX : PC7 & TX : PC6)
+    USART_Inst_6 = USART6_BASE,
+}UART_Instance;
+
+// UART frame word length
 typedef enum {
     UART_8B_Word_Length = UART_WORDLENGTH_8B,
     UART_9B_Word_Length = UART_WORDLENGTH_9B,
 }UART_Word_Length;
 
+// UART frame parity bits
 typedef enum {
     UART_Parity_None = UART_PARITY_NONE,
     UART_Parity_Even = UART_PARITY_EVEN,
     UART_Parity_Odd = UART_PARITY_ODD,
 }UART_Parity;
 
+// UART frame stop bits
 typedef enum {
     UART_1_Stop_Bits = UART_STOPBITS_1,
     UART_2_Stop_Bits = UART_STOPBITS_2,
 }UART_Stop_Bits;
 
-typedef enum {
-    UART_RX_Mode = UART_MODE_RX,
-    UART_TX_Mode = UART_MODE_TX,
-    UART_RX_TX_Mode = UART_MODE_TX_RX,
-}UART_Mode;
-
+// UART flow control
 typedef enum {
     UART_NONE_Ctl = UART_HWCONTROL_NONE,
     UART_RTS_Ctl = UART_HWCONTROL_RTS,
@@ -33,63 +40,115 @@ typedef enum {
     UART_RTS_CTS_Ctl = UART_HWCONTROL_RTS_CTS,
 }UART_Ctl_Flow;
 
+// UART sampling method
 typedef enum {
     UART_8_Oversampling = UART_OVERSAMPLING_8,
     UART_16_Oversampling = UART_OVERSAMPLING_16,
 }UART_Over_Sampling;
 
-const uint32_t uart_time_out = HAL_MAX_DELAY;
-
 class Uart {
 
     public:
 
-        // Make sure to have both rx and tx pins on the same gpio port
-        Uart(GPIO_TypeDef *gpio_port, uint16_t rx_pin, uint16_t tx_pin);
+        /*
+         * @brief : UART class constructor
+         * baudrate :  desired baudrate (9600, 115200...)
+         * word_length : desired data word length
+         * parity : desired parity bits
+         * stop_bits : desired stop bits
+         * ctl_flow : desired flow control
+         * @return : GPIO output object
+         */
+        Uart(UART_Instance uart_instance, uint32_t baudrate, UART_Word_Length word_length, UART_Parity parity, UART_Stop_Bits stop_bits, UART_Ctl_Flow ctl_flow);
 
-        Uart(GPIO_TypeDef *gpio_port, uint16_t rx_pin, uint16_t tx_pin, uint32_t preempt_priority, uint32_t sub_priority);
+        /*
+         * @brief : UART Initializer
+         */
+        void init();
 
-        void init(uint32_t baudrate);
+        /*
+         * @brief : This method initializes UART receives interruptions
+         * preempt_priority : interruption preempt priority
+         * sub_priority : interruption sub priority
+         */
+        void init_receives_interrupts(uint32_t preempt_priority, uint32_t sub_priority);
 
-        void default_init(uint32_t baudrate);
+        /*
+         * @brief : This method set the UART data frame with the desired parity and stop bits
+         * word_length : total data word length
+         * parity : desired parity bits
+         * stop_bits : desired stop bits
+         */
+        void set_data_frame(UART_Word_Length word_length, UART_Parity parity, UART_Stop_Bits stop_bits);
 
-        void set_data_frame(UART_Word_Length word_length, UART_Stop_Bits stop_bits, UART_Parity parity);
+        /*
+         * @brief : This method set the UART flow control
+         * ctl_flow : desired flow control
+         */
+        void set_ctl_flow(UART_Ctl_Flow ctl_flow);
 
-        void set_control_flow(UART_Ctl_Flow hw_ctl_flow);
+        /*
+         * @brief : This method set the UART sampling method
+         * over_sampling : desired over sampling method
+         */
+        void set_over_sampling(UART_Over_Sampling over_sampling);
 
-        void set_sampling(UART_Over_Sampling over_sampling);
+        /*
+         * @brief : This method set the desired UART baudrate
+         * baudrate : desired baudrate
+         */
+        void set_baudrate(uint32_t baudrate);
 
-        bool write(const char *tx_data);
+        /*
+         * @brief : This function allows to write tx_data_size bytes from the tx_data bytes array on the UART tx pin
+         * tx_data : bytes array to send
+         * tx_data_size : number of bytes to send
+         * @return : true if the entire message has been sent successfully
+         */
+        bool write(uint8_t *tx_data, uint32_t tx_data_size);
 
-        bool read();
+        /*
+         * @brief : This function allows to write a tx_data string. This function is mainly used for debugging
+         * tx_data : string to send
+         */
+        bool print(const char *tx_data);
 
-        bool start_reading_interrupt();
+        /*
+         * @brief : This function allows to receive data on the rx uart pin. The data is stored inside the rx_buffer.
+         * rx_buffer : buffer where the received data is stored
+         * rx_buffer_size : size of the rx_buffer
+         */
+        bool read(uint8_t *rx_buffer, uint32_t rx_buffer_size, uint32_t max_receive_timeout);
 
-#define UART_RX_BUFFER_SIZE 30
-
-        char rx_buffer[UART_RX_BUFFER_SIZE];
-
+        // UART handler typedef
         UART_HandleTypeDef uart_handler;
+        // UART instance
+        UART_Instance instance;
 
-        USART_TypeDef *instance;
+        // Max UART timeout
+        const uint32_t uart_time_out = HAL_MAX_DELAY;
 
     private:
 
-        void set_interrupt();
-
-        GPIO_TypeDef* gpio_port;
-
-        uint16_t rx_pin;
-        uint16_t tx_pin;
-
-        uint32_t preempt_priority;
-        uint32_t sub_priority;
-
-        bool use_interrupt;
-
+        /*
+         * @brief : UART GPIO port and pins initializer
+         * is_tx : true to initialize UART tx port and pins. False to initialize UART rx port and pins
+         */
         void init_pinout(bool is_tx);
-        void set_instance();
-};
 
+        /*
+         * @brief : This method allows UART rx and tx pinout (port and pins) setting
+         */
+        void set_pinout();
+
+        // UART RX GPIO port
+        GPIO_TypeDef* rx_gpio_port;
+        // UART RX GPIO pin
+        uint16_t rx_pin;
+        // UART TX GPIO port
+        GPIO_TypeDef* tx_gpio_port;
+        // UART TX GPIO pin
+        uint16_t tx_pin;
+};
+// Used for debugging
 extern Uart uart_debug;
-extern Uart uart_com;

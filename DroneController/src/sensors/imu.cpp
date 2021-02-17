@@ -9,9 +9,12 @@ IMU::IMU(GPIO_TypeDef *sda_port, uint16_t sda_pin_number, GPIO_TypeDef *scl_port
     gyro = {0};
     accel = {0};
     pitch = roll = yaw = 0;
-    is_ready = false;
+    is_gyro_calibrated = false;
+    is_accel_calibrated = false;
+    is_threshold_reached = false;
     set_gyro_sens();
     set_accel_sens();
+    last_time = 0;
 }
 
 void IMU::set_gyro_sens() {
@@ -59,77 +62,117 @@ bool IMU::init() {
 
 bool IMU::configure() {
     // Configure gyroscope
-    if (i2c.memory_write(MPU6050_ADR, GYRO_CONFIG_REG, GYRO_SPEED_500, 1000) == true) {
+    if (i2c.memory_write(MPU6050_ADR, GYRO_CONFIG_REG, GYRO_SPEED_250, 1000) == true) {
         HAL_Delay(10);
         // Configure accelerometer
-        if (i2c.memory_write(MPU6050_ADR, ACCEL_CONFIG_REG, ACCEL_SPEED_4G, 1000) == true) {
+        if (i2c.memory_write(MPU6050_ADR, ACCEL_CONFIG_REG, ACCEL_SPEED_2G, 1000) == true) {
             return true;
         }
     }
     return false;
 }
 
-void IMU::calibrate_gyro(int16_t iterations) {
-    uint8_t received_data[6] = {0};
+void IMU::calibrate_gyro() {
     int16_t gyro_data[3] = {0};
-    for (int16_t i = 0; i<iterations; i++) {
-        i2c.memory_read(MPU6050_ADR, GYRO_READ_REG, 1000, received_data, sizeof(received_data));
-        gyro_data[0] += (received_data[0] << 8 | received_data[1]);
-        gyro_data[1] += (received_data[2] << 8 | received_data[3]);
-        gyro_data[2] += (received_data[4] << 8 | received_data[5]);
-        HAL_Delay(100);
+    for (int16_t i = 0; i<MAX_GYRO_CALIB_SAMPLES; i++) {
+        //i2c.memory_read(MPU6050_ADR, GYRO_READ_REG, 1000, received_data, sizeof(received_data));
+        if (get_raw_gyro_data()) {
+            gyro_data[0] += gyro.raw_x_data;
+            gyro_data[1] += gyro.raw_y_data;
+            gyro_data[2] += gyro.raw_z_data;
+            HAL_Delay(GYRO_CALIB_DELAY);
+        }
     }
-    gyro.x_offset = (float)(gyro_data[0]/(iterations));
-    gyro.y_offset = (float)(gyro_data[1]/(iterations));
-    gyro.z_offset = (float)(gyro_data[2]/(iterations));
-    is_ready = true;
+    gyro.raw_x_offset = gyro_data[0]/MAX_GYRO_CALIB_SAMPLES;
+    gyro.raw_y_offset = gyro_data[1]/MAX_GYRO_CALIB_SAMPLES;
+    gyro.raw_z_offset = gyro_data[2]/MAX_GYRO_CALIB_SAMPLES;
+    is_gyro_calibrated = true;
+}
+
+void IMU::calibrate_accel() {
+    int16_t accel_data[3] = {0};
+    for (int16_t i = 0; i<MAX_ACCEL_CALIB_SAMPLES; i++) {
+        //i2c.memory_read(MPU6050_ADR, GYRO_READ_REG, 1000, received_data, sizeof(received_data));
+        if (get_raw_accel_data()) {
+            accel_data[0] += accel.raw_x_data;
+            accel_data[1] += accel.raw_y_data;
+            accel_data[2] += accel.raw_z_data;
+            HAL_Delay(ACCEL_CALIB_DELAY);
+        }
+    }
+    accel.raw_x_offset = accel_data[0]/MAX_ACCEL_CALIB_SAMPLES;
+    accel.raw_y_offset = accel_data[1]/MAX_ACCEL_CALIB_SAMPLES;
+    accel.raw_z_offset = accel_data[2]/MAX_ACCEL_CALIB_SAMPLES;
+    is_accel_calibrated = true;
+}
+
+bool IMU::get_raw_gyro_data() {
+    uint8_t received_data[6] = {0};
+    if (i2c.memory_read(MPU6050_ADR, GYRO_READ_REG, 1000, received_data, sizeof(received_data)) == true) {
+        gyro.raw_x_data = received_data[0] << 8 | received_data[1];
+        gyro.raw_y_data = received_data[2] << 8 | received_data[3];
+        gyro.raw_z_data = received_data[4] << 8 | received_data[5];
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool IMU::get_raw_accel_data() {
+    uint8_t received_data[6] = {0};
+    if (i2c.memory_read(MPU6050_ADR, ACCEL_READ_REG, 1000, received_data, sizeof(received_data)) == true) {
+        accel.raw_x_data = received_data[0] << 8 | received_data[1];
+        accel.raw_y_data = received_data[2] << 8 | received_data[3];
+        accel.raw_z_data = received_data[4] << 8 | received_data[5];
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool IMU::get_acceleration() {
-    uint8_t received_data[6] = {0};
-    if (i2c.memory_read(MPU6050_ADR, ACCEL_READ_REG, 1000, received_data, sizeof(received_data)) == true) {
-        accel.x_accel = (received_data[0] << 8 | received_data[1])/accel_sens;
-        accel.y_accel = (received_data[2] << 8 | received_data[3])/accel_sens;
-        accel.z_accel = (received_data[4] << 8 | received_data[5])/accel_sens;
+    if (get_raw_accel_data()) {
+        accel.x_accel = (float)(accel.raw_x_data - accel.raw_x_offset)/accel_sens;
+        accel.y_accel = (float)(accel.raw_y_data - accel.raw_y_offset)/accel_sens;
+        accel.z_accel = (float)(accel.raw_z_data - accel.raw_z_offset)/accel_sens;
         return true;
     } else {
         return false;
     }
 }
 
-bool IMU::get_angular_speed() {
-    uint8_t received_data[6] = {0};
-    int16_t gyro_data[3] = {0};
-    if (i2c.memory_read(MPU6050_ADR, GYRO_READ_REG, 1000, received_data, sizeof(received_data)) == true) {
-        gyro_data[0] = received_data[0] << 8 | received_data[1];
-        gyro_data[1] = received_data[2] << 8 | received_data[3];
-        gyro_data[2] = received_data[4] << 8 | received_data[5];
-
-        gyro.x_angular_speed = (float)gyro_data[0];
-        gyro.y_angular_speed = (float)gyro_data[1];
-        gyro.z_angular_speed = (float)gyro_data[2];
+bool IMU::get_gyro_angular_speed() {
+    if (get_raw_gyro_data()) {
+        gyro.x_angular_speed = (float)(gyro.raw_x_data - gyro.raw_x_offset)/gyro_sens;
+        gyro.y_angular_speed = (float)(gyro.raw_y_data - gyro.raw_y_offset)/gyro_sens;
+        gyro.z_angular_speed = (float)(gyro.raw_z_data - gyro.raw_z_offset)/gyro_sens;
         return true;
     } else {
         return false;
     }
 }
 
-bool IMU::get_raw_gyro_angles(float timer_period) {
-    if (get_angular_speed()) {
-        gyro.raw_roll = ((float)(gyro.x_angular_speed - gyro.x_offset))*timer_period/gyro_sens + (float)gyro.raw_roll;
-        gyro.raw_pitch = ((float)(gyro.y_angular_speed - gyro.y_offset))*timer_period/gyro_sens + (float)gyro.raw_pitch;
-        gyro.raw_yaw = ((float)(gyro.z_angular_speed - gyro.z_offset))*timer_period/gyro_sens + (float)gyro.raw_yaw;
+bool IMU::get_raw_gyro_angles() {
+    if (get_raw_gyro_data()) {
+        uint32_t time_now = HAL_GetTick();
+        float dT = (float)(time_now - last_time)/1000.0;
+        last_time = time_now;
+        gyro.raw_roll = ((float)(gyro.raw_x_data - gyro.raw_x_offset))*dT/gyro_sens + roll;
+        gyro.raw_pitch = ((float)(gyro.raw_y_data - gyro.raw_y_offset))*dT/gyro_sens + pitch;
+        gyro.raw_yaw = ((float)(gyro.raw_z_data - gyro.raw_z_offset))*dT/gyro_sens + yaw;
+        roll = gyro.raw_roll;
+        pitch = gyro.raw_pitch;
+        yaw = gyro.raw_yaw;
         return true;
     } else {
         return false;
     }
-
 }
 
 bool IMU::get_raw_accel_angles() {
-    if (get_acceleration()) {
-        accel.raw_roll = atan(accel.y_accel/sqrt(pow(accel.z_accel,2) + pow(accel.x_accel,2)))*180/M_PI;
-        accel.raw_pitch = atan(-accel.x_accel/sqrt(pow(accel.z_accel, 2) + pow(accel.y_accel, 2)))*180/M_PI;
+    if (get_raw_accel_data()) {
+        accel.raw_roll = atan(accel.raw_y_data/sqrt(pow(accel.raw_z_data,2) + pow(accel.raw_x_data,2)))*180/M_PI;
+        accel.raw_pitch = atan(-accel.raw_x_data/sqrt(pow(accel.raw_z_data, 2) + pow(accel.raw_y_data, 2)))*180/M_PI;
         return true;
     } else {
         return false;
@@ -137,15 +180,21 @@ bool IMU::get_raw_accel_angles() {
 
 }
 
-bool IMU::get_filtered_angles(float timer_period, float filtering_rate) {
+bool IMU::get_filtered_angles(float filtering_rate) {
     if (get_raw_accel_angles()) {
-        if (get_raw_gyro_angles(timer_period)) {
+        if (get_raw_gyro_angles()) {
             roll = filtering_rate * gyro.raw_roll + (1.0 - filtering_rate) * accel.raw_roll;
             pitch = filtering_rate * gyro.raw_pitch + (1.0 - filtering_rate) * accel.raw_pitch;
-            yaw = gyro.raw_yaw;
+            yaw = 0.0;
+            if (pitch > MAX_PITCH_THRESHOLD || pitch < MIN_PITCH_THRESHOLD) {
+                is_threshold_reached = true;
+            }
+            if (roll > MAX_ROLL_THRESHOLD || roll < MIN_ROLL_THRESHOLD) {
+                is_threshold_reached = true;
+            }
             return true;
         }
-    }{}
+    }
     return false;
 }
 
@@ -156,6 +205,6 @@ void IMU::display() {
     s.append(std::to_string((int32_t)pitch));
     s.append(" | ");
     s.append(std::to_string((int32_t)yaw));
-    uart_debug.write(s.c_str());
+    uart_debug.print(s.c_str());
 }
 

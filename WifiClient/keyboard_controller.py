@@ -1,6 +1,6 @@
 import sys, termios, tty, time
 import threading
-from drone_controller import *
+from global_interface import *
 
 THROTTLE_STEP = 10
 PITCH_STEP = 10
@@ -11,12 +11,6 @@ class Keyboard_controller (threading.Thread):
     def __init__(self, time_btwn_key):
         self.value = ""
         self.time_btwn_key = time_btwn_key
-
-        self.throttle_step = THROTTLE_STEP
-        self.pitch_step = PITCH_STEP
-        self.roll_step = ROLL_STEP
-        self.yaw_step = YAW_STEP
-
         threading.Thread.__init__(self)
 
     def run(self):
@@ -66,33 +60,33 @@ class Keyboard_controller (threading.Thread):
     def set_controller_commands(self):
         if self.value != "":
             if (self.value == "UpperArrow"):
-                commands["desired_throttle"] += self.throttle_step
-                if (commands["desired_throttle"] >= MAX_THROTTLE):
-                    commands["desired_throttle"] = MAX_THROTTLE
+                interface.commands["throttle"] += THROTTLE_STEP
+                if (interface.commands["throttle"] >= MAX_THROTTLE):
+                    interface.commands["desired_throttle"] = MAX_THROTTLE
             if (self.value == "DownArrow"):
-                commands["desired_throttle"] -= self.throttle_step
-                if (commands["desired_throttle"] <= MIN_THROTTLE):
-                    commands["desired_throttle"] = MIN_THROTTLE
+                interface.commands["throttle"] -= THROTTLE_STEP
+                if (interface.commands["throttle"] <= MIN_THROTTLE):
+                    interface.commands["throttle"] = MIN_THROTTLE
             if (self.value == "Z"):
-                commands["desired_roll"] += self.roll_step
-                if (commands["desired_roll"] >= MAX_ROLL):
-                    commands["desired_roll"] = MAX_ROLL
+                interface.commands["roll"] += ROLL_STEP
+                if (interface.commands["roll"] >= MAX_ROLL):
+                    interface.commands["roll"] = MAX_ROLL
             if (self.value == "S"):
-                commands["desired_roll"] -= self.roll_step
-                if (commands["desired_roll"] <= MIN_ROLL):
-                    commands["desired_roll"] = MIN_ROLL
+                interface.commands["roll"] -= ROLL_STEP
+                if (interface.commands["roll"] <= MIN_ROLL):
+                    interface.commands["roll"] = MIN_ROLL
             if (self.value == "Q"):
-                commands["desired_pitch"] -= self.pitch_step
-                if (commands["desired_pitch"] <= MIN_PITCH):
-                    commands["desired_pitch"] = MIN_PITCH
+                interface.commands["pitch"] -= PITCH_STEP
+                if (interface.commands["pitch"] <= MIN_PITCH):
+                    interface.commands["pitch"] = MIN_PITCH
             if (self.value == "D"):
-                commands["desired_pitch"] += self.pitch_step
-                if (commands["desired_pitch"] >= MAX_PITCH):
-                    commands["desired_pitch"] = MAX_PITCH
+                interface.commands["pitch"] += PITCH_STEP
+                if (interface.commands["pitch"] >= MAX_PITCH):
+                    interface.commands["pitch"] = MAX_PITCH
             if (self.value == "LeftArrow"):
-                commands["desired_yaw"] -= self.yaw_step
+                interface.commands["yaw"] -= YAW_STEP
             if (self.value == "RightArrow"):
-                commands["desired_yaw"] += self.yaw_step
+                interface.commands["yaw"] += YAW_STEP
             if (self.value == "CTRL+C"):
                 return True
         self.value = ""

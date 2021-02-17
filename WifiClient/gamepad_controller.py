@@ -13,11 +13,6 @@ class Gamepad_controller:
         self.emergency_button = False
         self.joystick = None
 
-        self.throttle_step = THROTTLE_STEP
-        self.pitch_step = PITCH_STEP
-        self.roll_step = ROLL_STEP
-        self.yaw_step = YAW_STEP
-
         pygame.init()
         pygame.joystick.init()
         self.is_joystick_detected = self.init_joysticks()
@@ -53,28 +48,28 @@ class Gamepad_controller:
     def set_controller_commands(self):
         self.get_buttons_values()
         if self.upper_triggers[0]:
-            commands["desired_throttle"] -= self.throttle_step
-            if commands["desired_throttle"] <= MIN_THROTTLE:
-                commands["desired_throttle"] = MIN_THROTTLE
+            interface.commands["throttle"] -= THROTTLE_STEP
+            if interface.commands["throttle"] <= MIN_THROTTLE:
+                interface.commands["throttle"] = MIN_THROTTLE
         if self.upper_triggers[1]:
-            commands["desired_throttle"] += self.throttle_step
-            if commands["desired_throttle"] >= MAX_THROTTLE:
-                commands["desired_throttle"] = MAX_THROTTLE
-        commands["desired_pitch"] += round(self.joysticks_axis[0]) * self.pitch_step
-        if commands["desired_pitch"] <= MIN_PITCH:
-            commands["desired_pitch"] = MIN_PITCH
-        if commands["desired_pitch"] >= MAX_PITCH:
-            commands["desired_pitch"] = MAX_PITCH
+            interface.commands["throttle"] += THROTTLE_STEP
+            if interface.commands["throttle"] >= MAX_THROTTLE:
+                interface.commands["throttle"] = MAX_THROTTLE
+        interface.commands["pitch"] += round(self.joysticks_axis[0]) * PITCH_STEP
+        if interface.commands["pitch"] <= MIN_PITCH:
+            interface.commands["pitch"] = MIN_PITCH
+        if interface.commands["pitch"] >= MAX_PITCH:
+            interface.commands["pitch"] = MAX_PITCH
 
-        commands["desired_roll"] += round(self.joysticks_axis[1]) * self.roll_step
-        if commands["desired_roll"] <= MIN_ROLL:
-            commands["desired_roll"] = MIN_ROLL
-        if commands["desired_roll"] >= MAX_ROLL:
-            commands["desired_roll"] = MAX_ROLL
+        interface.commands["roll"] += round(self.joysticks_axis[1]) * ROLL_STEP
+        if interface.commands["roll"] <= MIN_ROLL:
+            interface.commands["roll"] = MIN_ROLL
+        if interface.commands["roll"] >= MAX_ROLL:
+            interface.commands["roll"] = MAX_ROLL
 
-        commands["desired_yaw"] += round(self.joysticks_axis[3]) * self.yaw_step
-        if commands["desired_yaw"] <= MIN_YAW:
-            commands["desired_yaw"] = MIN_YAW
-        if commands["desired_yaw"] >= MAX_YAW:
-            commands["desired_yaw"] = MAX_YAW
+        interface.commands["yaw"] += round(self.joysticks_axis[3]) * YAW_STEP
+        if interface.commands["yaw"] <= MIN_YAW:
+            interface.commands["yaw"] = MIN_YAW
+        if interface.commands["yaw"] >= MAX_YAW:
+            interface.commands["yaw"] = MAX_YAW
         return self.emergency_button
