@@ -1,4 +1,5 @@
 import socket
+from wifi import *
 import time, errno
 from enum import Enum
 import struct
@@ -9,6 +10,8 @@ SOCKET_RECEIVE_TIMEOUT = 0.05
 
 ESP_32_SERVER_ADDRESS = "192.168.4.1"
 ESP_32_SERVER_PORT = 82
+
+ESP32_WIFI_NETWORK_NAME = "ESP32_CAM"
 
 # bytes
 MAX_COMMAND_PARAMETER_SIZE = 50
@@ -34,18 +37,20 @@ class Drone_controller:
         self.sock = socket.socket()
         self.received_op_code = 0x00
         self.received_parameter = []
+        self.print_counter = 0
 
     def connect(self):
-        try:
-            self.sock.connect((ESP_32_SERVER_ADDRESS, ESP_32_SERVER_PORT))
-        except:
-            print("Failed to connect to the Wifi Server\r")
-            return False
-        else:
-            print("Successfully connected to the Wifi Server\r")
-            self.sock.settimeout(SOCKET_RECEIVE_TIMEOUT)
-            self.is_connected = True
-            return True
+        if (connect_to_wifi_network(ESP32_WIFI_NETWORK_NAME)):
+            try:
+                self.sock.connect((ESP_32_SERVER_ADDRESS, ESP_32_SERVER_PORT))
+            except:
+                print("Failed to connect to the Wifi Server\r")
+                return False
+            else:
+                print("Successfully connected to the Wifi Server\r")
+                self.sock.settimeout(SOCKET_RECEIVE_TIMEOUT)
+                self.is_connected = True
+                return True
 
     def disconnect(self):
         if (self.is_connected):
@@ -147,9 +152,12 @@ class Drone_controller:
             self.send_current_state_request()
             time.sleep(0.1)
             self.get_current_state()
+            interface.commands["throttle"] = interface.current_state["throttle"]
 
     def send_drone_commands(self):
-        commands = [interface.commands["pitch"], interface.commands["roll"], interface.commands["yaw"], interface.commands["throttle"]]
+        commands = []
+        if (interface.commands["throttle"] > 0) :
+            commands = [interface.commands["pitch"], interface.commands["roll"], interface.commands["yaw"], interface.commands["throttle"]]
         self.send_command(OPCode.DroneCommands.value, commands, parameter_type="Float")
         #print("Drone commands :" + str(commands) + "\r\n")
 
@@ -160,7 +168,9 @@ class Drone_controller:
             interface.current_state["yaw"] = struct.unpack('<f', bytes(self.received_parameter[8:12]))[0]
             interface.current_state["throttle"] = struct.unpack('<f', bytes(self.received_parameter[12:16]))[0]
             interface.current_state["battery_voltage"] = struct.unpack('<f', bytes(self.received_parameter[16:20]))[0]
-            print("Drone current state :" + str(list(interface.current_state.values())) + "\r\n")
+            round_values = [round(value, 1) for value in list(interface.current_state.values())]
+            print(str(self.print_counter) + ": Drone current state :" + str(round_values) + "\r\n")
+            self.print_counter += 1
 
     def send_current_state_request(self):
         self.send_command(OPCode.DroneCurrentState.value, [])
@@ -176,6 +186,7 @@ class Drone_controller:
 
     def is_drone_thresholds_error_received(self):
         if self.receive_feedback() and OPCode.DroneThresholdsReached.value == self.received_op_code:
+            print("Drone angles thresholds reached")
             return True
         else:
             return False

@@ -54,6 +54,8 @@ class ESP32 {
             DroneThresholdsReached = 0x14,
         }OP_Codes;
 
+       bool emergency_request_received;
+
     private:
 
         bool send_command(uint8_t op_code, uint8_t *parameter);
@@ -70,7 +72,7 @@ class ESP32 {
 
         // USART Instance 6 (RX : PC7 & TX : PC6)
         static const UART_Instance UART_INST = USART_Inst_1;
-        static const int BAUDRATE = 9600;
+        static const int BAUDRATE = 19200;
         static const UART_Word_Length WORD_LENGTH = UART_8B_Word_Length;
         static const UART_Parity PARITY = UART_Parity_None;
         static const UART_Stop_Bits STOP_BITS = UART_1_Stop_Bits;

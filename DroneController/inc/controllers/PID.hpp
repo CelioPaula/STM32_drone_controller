@@ -10,10 +10,10 @@ class PID {
         void set_pid_values(float kp, float ki, float kd);
         void process_p(float target_value, float current_value);
         void process_i(float target_value, float current_value);
-        void process_d(float target_value, float current_value, float elapsed_time);
-        void process_pid(float target_value, float current_value, float elapsed_time);
-        void constrain(int32_t min_result, int32_t max_result);
-        float constrain_value(float value);
+        void process_d(float target_value, float current_value);
+        void process_pid(float target_value, float current_value);
+        void constrain(float min_result, float max_result);
+        void constrain();
 
         float kp;
         float ki;
@@ -31,7 +31,8 @@ class PID {
         float max_constrain;
         float previous_error;
 
+        float last_time;
+
         bool is_constrained;
-        bool use_full_pid;
 };
 

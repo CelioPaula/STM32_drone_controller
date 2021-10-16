@@ -3,9 +3,9 @@ import threading
 from global_interface import *
 
 THROTTLE_STEP = 10
-PITCH_STEP = 10
-ROLL_STEP = 10
-YAW_STEP = 10
+PITCH_STEP = 1.0
+ROLL_STEP = 1.0
+YAW_STEP = 1.0
 
 class Keyboard_controller (threading.Thread):
     def __init__(self, time_btwn_key):

@@ -1,13 +1,18 @@
 #include "actuators/brushless.hpp"
 #include "maths/math.hpp"
 
-Brushless::Brushless(GPIO_TypeDef *gpio_port, uint16_t pin_number, uint32_t max_speed_value, uint32_t speed_offset_value) :
-    pwm_output(Pwm_output(gpio_port, pin_number, timer_period, timer_prescaler)),
-    max_speed_value(max_speed_value),
+Brushless::Brushless(GPIO_TypeDef *gpio_port, uint16_t pin_number, uint32_t speed_offset_value) :
+    pwm_output(Pwm_output(gpio_port, pin_number, TIMER_PERIOD, TIMER_PRESCALER)),
     speed_offset_value(speed_offset_value) {
     speed_value = 0;
-    Brushless::max_speed_value = max_speed_value;
-    pwm_frequency = (H_CLOCK_FREQ)/(timer_prescaler * timer_period);
+    speed_divider = 1;
+}
+
+Brushless::Brushless(GPIO_TypeDef *gpio_port, uint16_t pin_number, uint32_t speed_offset_value, float speed_divider) :
+    pwm_output(Pwm_output(gpio_port, pin_number, TIMER_PERIOD, TIMER_PRESCALER)),
+    speed_offset_value(speed_offset_value) {
+    speed_value = 0;
+    Brushless::speed_divider = speed_divider;
 }
 
 void Brushless::init() {
@@ -16,21 +21,28 @@ void Brushless::init() {
 }
 
 void Brushless::set_speed(uint32_t desired_speed) {
-    if (desired_speed <= max_speed_value) {
+    if (desired_speed <= MAX_SPEED_VALUE) {
         if (desired_speed != 0) {
             speed_value = desired_speed + speed_offset_value;
         } else {
             speed_value = desired_speed;
         }
-        uint32_t pwm_time_high = map((long)speed_value, 0, max_speed_value, min_pwm_time_high, pwm_period);
-        float duty_cycle = (float)((float)pwm_time_high/(pwm_period*10));
+        speed_value = desired_speed;
+        uint32_t pwm_time_high = map((long)speed_value, 0, MAX_SPEED_VALUE, MIN_PWM_TIME_HIGH, MAX_PWM_TIME_HIGH);
+        float duty_cycle = (float)((float)pwm_time_high/(PWM_PERIOD));
         pwm_output.set_duty_cycle(duty_cycle);
     }
 }
 
-void Brushless::set_speed(uint32_t desired_speed, uint32_t roll_correction, uint32_t pitch_correction) {
-    speed_value = desired_speed + speed_offset_value + roll_correction + pitch_correction;
-    uint32_t pwm_time_high = map((long)speed_value, 0, max_speed_value, min_pwm_time_high, pwm_period);
-    float duty_cycle = (float)((float)pwm_time_high/(pwm_period*10));
-    pwm_output.set_duty_cycle(duty_cycle);
+void Brushless::set_speed(uint32_t desired_speed, float roll_correction, float pitch_correction) {
+    if (desired_speed <= MAX_SPEED_VALUE) {
+        if (desired_speed != 0) {
+            speed_value = (desired_speed + roll_correction + pitch_correction)/speed_divider;
+        } else {
+            speed_value = desired_speed;
+        }
+        uint32_t pwm_time_high = map((long)speed_value, 0, MAX_SPEED_VALUE, MIN_PWM_TIME_HIGH, MAX_PWM_TIME_HIGH);
+        float duty_cycle = (float)((float)pwm_time_high/(PWM_PERIOD));
+        pwm_output.set_duty_cycle(duty_cycle);
+    }
 }

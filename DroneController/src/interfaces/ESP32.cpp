@@ -6,6 +6,7 @@ ESP32::ESP32() :
     uart_com(Uart(UART_INST, BAUDRATE, WORD_LENGTH, PARITY, STOP_BITS, CTL_FLOW)) {
     receive_buffer_index = 0;
     command_payload = {0};
+    emergency_request_received = false;
 }
 
 void ESP32::init() {
@@ -39,6 +40,9 @@ bool ESP32::send_command(uint8_t op_code, uint8_t *parameter) {
     command_buffer[MAX_COMMAND_PARAMETER_SIZE + 2] = calculate_crc8(crc_initializer, command_buffer, MAX_COMMAND_BUFFER_SIZE - 1);
 
     HAL_UART_Transmit_IT(&uart_com.uart_handler, command_buffer, MAX_COMMAND_BUFFER_SIZE);
+    /*if (uart_com.write(command_buffer, MAX_COMMAND_BUFFER_SIZE)) {
+        return true;
+    }*/
     return true;
 }
 
@@ -59,6 +63,11 @@ bool ESP32::process_receive() {
         for (uint8_t i = 0; i<MAX_COMMAND_BUFFER_SIZE - frame_buffer_index; i++) {
             frame_buffer[frame_buffer_index + i] = receive_buffer[i];
         }
+        /*std::string s;
+        for (uint8_t i = 0; i<MAX_COMMAND_BUFFER_SIZE; i++) {
+            s.append(std::to_string(frame_buffer[i]));
+        }*/
+        //uart_debug.print(s.c_str());
         if (evaluate_crc8(frame_buffer, MAX_COMMAND_BUFFER_SIZE)) {
             command_payload.op_code = frame_buffer[1];
             memcpy(command_payload.parameter, &frame_buffer[2], MAX_COMMAND_PARAMETER_SIZE);
@@ -66,6 +75,7 @@ bool ESP32::process_receive() {
         }
     }
     return false;
+
 }
 
 uint8_t ESP32::calculate_checksum(uint8_t *buffer) {
@@ -154,6 +164,7 @@ void ESP32::get_drone_received_commands() {
 
 bool ESP32::is_emergency_request_received() {
     if (command_payload.op_code == EmergencyRequest) {
+        emergency_request_received = true;
         return true;
     } else {
         return false;

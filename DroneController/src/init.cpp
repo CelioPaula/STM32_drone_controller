@@ -1,11 +1,15 @@
 ﻿#include "init.hpp"
 
-Brushless motor_FR = Brushless(GPIOB, GPIO_PIN_9, 2000, 200);
-Brushless motor_BR = Brushless(GPIOB, GPIO_PIN_6, 2000, 430);
-Brushless motor_FL = Brushless(GPIOA, GPIO_PIN_0, 2000, 200);
-Brushless motor_BL = Brushless(GPIOA, GPIO_PIN_1, 2000, 200);
+/*Brushless motor_FR = Brushless(GPIOB, GPIO_PIN_9, 200);
+Brushless motor_BR = Brushless(GPIOB, GPIO_PIN_6, 440);
+Brushless motor_FL = Brushless(GPIOA, GPIO_PIN_0, 200);
+Brushless motor_BL = Brushless(GPIOA, GPIO_PIN_1, 200);*/
+Brushless motor_FR = Brushless(GPIOB, GPIO_PIN_9, 0);
+Brushless motor_BR = Brushless(GPIOB, GPIO_PIN_6, 0);
+Brushless motor_FL = Brushless(GPIOA, GPIO_PIN_0, 0);
+Brushless motor_BL = Brushless(GPIOA, GPIO_PIN_1, 0);
 //Adc adc_input = Adc(GPIOA, GPIO_PIN_0, ADC_Resolution_12B, false);
-IMU mpu6050 = IMU(GPIOC, GPIO_PIN_9, GPIOA, GPIO_PIN_8, GyroSpeed_250, AccelSpeed_4G);
+IMU mpu6050 = IMU(GPIOC, GPIO_PIN_9, GPIOA, GPIO_PIN_8, GyroSens_1000, AccelSens_8G);
 Uart uart_debug = Uart(USART_Inst_2, 9600, UART_8B_Word_Length, UART_Parity_None, UART_1_Stop_Bits, UART_NONE_Ctl);
 ESP32 esp32 = ESP32();
 PID pid_roll = PID();
@@ -48,16 +52,36 @@ void init_all() {
     motor_FL.init();
     motor_BL.init();
 
-    if (mpu6050.init()) {
-        mpu6050.configure();
-        mpu6050.calibrate_gyro();
-        mpu6050.calibrate_accel();
+    //uint32_t last_time = HAL_GetTick();
+    //while(HAL_GetTick() - last_time < 2000) {
+        motor_FR.set_speed(Brushless::MAX_SPEED_VALUE);
+        motor_BR.set_speed(Brushless::MAX_SPEED_VALUE);
+        motor_FL.set_speed(Brushless::MAX_SPEED_VALUE);
+        motor_BL.set_speed(Brushless::MAX_SPEED_VALUE);
+    //}
+
+    HAL_Delay(2000);
+
+    //last_time = HAL_GetTick();
+    //while(HAL_GetTick() - last_time < 2000) {
+        motor_FR.set_speed(0);
+        motor_BR.set_speed(0);
+        motor_FL.set_speed(0);
+        motor_BL.set_speed(0);
+    //}
+    HAL_Delay(2000);
+
+
+    if (mpu6050.init(true)) {
+        if (mpu6050.configure()) {
+            mpu6050.calibrate();
+        }
     }
 
 
     /* /!\ Start all interruptions after everything /!\ */
     esp32.it_start_reading();
 
-    //pid_roll.constrain(-400, 400);
-    //pid_pitch.constrain(-400, 400);
+    pid_roll.constrain(-400, 400);
+    pid_pitch.constrain(-400, 400);
 }

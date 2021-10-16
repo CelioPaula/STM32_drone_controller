@@ -104,7 +104,7 @@ void Uart::set_baudrate(uint32_t baudrate) {
 }
 
 bool Uart::write(uint8_t *tx_data, uint32_t tx_data_size) {
-    if (HAL_UART_Transmit(&uart_handler, (uint8_t*) tx_data, tx_data_size, 10) == HAL_OK) {
+    if (HAL_UART_Transmit(&uart_handler, (uint8_t*) tx_data, tx_data_size, 1000) == HAL_OK) {
         return true;
     } else {
         return false;

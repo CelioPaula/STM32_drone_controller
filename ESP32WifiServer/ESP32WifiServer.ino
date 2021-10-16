@@ -30,7 +30,7 @@ WiFiClient client;
 void startCameraServer();
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(19200);
 
   WiFi.softAP(ssid, password);
 

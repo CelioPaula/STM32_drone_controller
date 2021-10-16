@@ -3,27 +3,27 @@
 #include "Drivers/i2c.hpp"
 
 typedef enum {
-    GyroSpeed_250,
-    GyroSpeed_500,
-    GyroSpeed_1000,
-    GyroSpeed_2000,
-}Gyro_Speed;
+    GyroSens_250,
+    GyroSens_500,
+    GyroSens_1000,
+    GyroSens_2000,
+}Gyro_Sens;
 
 typedef enum {
-    AccelSpeed_2G,
-    AccelSpeed_4G,
-    AccelSpeed_8G,
-    AccelSpeed_16G,
-}Accel_Speed;
+    AccelSens_2G,
+    AccelSens_4G,
+    AccelSens_8G,
+    AccelSens_16G,
+}Accel_Sens;
 
 
 class IMU
 {
     public:
 
-        IMU(GPIO_TypeDef *sda_port, uint16_t sda_pin_number, GPIO_TypeDef *scl_port, uint16_t scl_pin_number, Gyro_Speed gyro_speed, Accel_Speed accel_speed);
+        IMU(GPIO_TypeDef *sda_port, uint16_t sda_pin_number, GPIO_TypeDef *scl_port, uint16_t scl_pin_number, Gyro_Sens gyro_sens, Accel_Sens accel_sens);
 
-        bool init();
+        bool init(bool use_threshold);
 
         bool configure();
 
@@ -31,38 +31,61 @@ class IMU
 
         void calibrate_accel();
 
+        void calibrate();
+
         bool get_raw_accel_data();
 
         bool get_raw_gyro_data();
 
-        bool get_acceleration();
+        bool get_acceleration(bool with_error);
 
-        bool get_gyro_angular_speed();
+        bool get_gyro_angular_speed(bool with_error);
 
-        bool get_raw_gyro_angles();
+        bool get_gyro_angles();
 
-        bool get_raw_accel_angles();
+        bool get_accel_angles();
 
         bool get_filtered_angles(float filtering_rate);
 
         void display();
+
+        float pitch;
+        float roll;
+        float yaw;
+
+        bool is_threshold_reached;
+
+    private:
+
+        void set_gyro_sens();
+
+        void set_accel_sens();
+
+        void apply_sma_filter(uint16_t n);
+
+        Gyro_Sens gyro_sens;
+        Accel_Sens accel_sens;
+
+        I2C i2c;
 
         typedef struct {
             int16_t raw_x_data;
             int16_t raw_y_data;
             int16_t raw_z_data;
 
-            int16_t raw_x_offset;
-            int16_t raw_y_offset;
-            int16_t raw_z_offset;
+            float x_angular_speed_error;
+            float y_angular_speed_error;
+            float z_angular_speed_error;
 
             float x_angular_speed;
             float y_angular_speed;
             float z_angular_speed;
 
-            float raw_pitch;
-            float raw_roll;
-            float raw_yaw;
+            float pitch;
+            float roll;
+            float yaw;
+
+            float sensivity;
         }Gyro;
 
         typedef struct {
@@ -70,36 +93,35 @@ class IMU
             int16_t raw_y_data;
             int16_t raw_z_data;
 
-            int16_t raw_x_offset;
-            int16_t raw_y_offset;
-            int16_t raw_z_offset;
+            float x_accel_error;
+            float y_accel_error;
+            float z_accel_error;
 
-            int16_t x_accel;
-            int16_t y_accel;
-            int16_t z_accel;
+            float x_accel;
+            float y_accel;
+            float z_accel;
 
-            float raw_pitch;
-            float raw_roll;
+            float pitch;
+            float roll;
+
+            float sensivity;
         }Accel;
 
         Gyro gyro;
         Accel accel;
 
-        float pitch;
-        float roll;
-        float yaw;
+        float last_time;
 
-        bool is_gyro_calibrated;
-        bool is_accel_calibrated;
-        bool is_threshold_reached;
+        bool use_threshold_angles;
 
-        uint32_t last_time;
+        const static uint16_t SMA_ENTRIES = 5;
 
-    private:
+        float sma_x_fifo[SMA_ENTRIES];
+        float sma_y_fifo[SMA_ENTRIES];
+        float sma_z_fifo[SMA_ENTRIES];
 
-        void set_gyro_sens();
-
-        void set_accel_sens();
+        uint8_t accel_sens_reg_value;
+        uint8_t gyro_sens_reg_value;
 
         const uint8_t MPU6050_ADR = 0xD0;
 
@@ -110,43 +132,38 @@ class IMU
         const uint8_t PWR_MGMT_WAKE_UP = 0x00;
 
         const uint8_t GYRO_CONFIG_REG = 0x1B;
-        const uint8_t GYRO_SPEED_250 = 0x00;
-        const uint8_t GYRO_SPEED_500 = 0x08;
-        const uint8_t GYRO_SPEED_1000 = 0x10;
-        const uint8_t GYRO_SPEED_2000 = 0x18;
+        const uint8_t GYRO_SENS_250_REG_VALUE = 0x00;
+        const uint8_t GYRO_SENS_500_REG_VALUE = 0x08;
+        const uint8_t GYRO_SENS_1000_REG_VALUE = 0x10;
+        const uint8_t GYRO_SENS_2000_REG_VALUE = 0x18;
         const uint8_t GYRO_READ_REG = 0x43;
-        const float gyro_sens_250 = 131;
-        const float gyro_sens_500 = 65.5;
-        const float gyro_sens_1000 = 32.8;
-        const float gyro_sens_2000 = 16.4;
+
+        const float GYRO_SENS_250_VALUE = 131;
+        const float GYRO_SENS_500_VALUE = 65.5;
+        const float GYRO_SENS_1000_VALUE = 32.8;
+        const float GYRO_SENS_2000_VALUE = 16.4;
 
 
         const uint8_t ACCEL_CONFIG_REG = 0x1C;
-        const uint8_t ACCEL_SPEED_2G = 0x00;
-        const uint8_t ACCEL_SPEED_4G = 0x08;
-        const uint8_t ACCEL_SPEED_8G = 0x10;
-        const uint8_t ACCEL_SPEED_16G = 0x18;
+        const uint8_t ACCEL_SENS_2G_REG_VALUE = 0x00;
+        const uint8_t ACCEL_SENS_4G_REG_VALUE = 0x08;
+        const uint8_t ACCEL_SENS_8G_REG_VALUE = 0x10;
+        const uint8_t ACCEL_SENS_16G_REG_VALUE = 0x18;
         const uint8_t ACCEL_READ_REG = 0x3B;
-        const int accel_sens_2G = 16384;
-        const int accel_sens_4G = 8192;
-        const int accel_sens_8G = 4096;
-        const int accel_sens_16G = 2048;
 
-        float gyro_sens;
-        float accel_sens;
+        const int ACCEL_SENS_2G_VALUE = 16384;
+        const int ACCEL_SENS_4G_VALUE = 8192;
+        const int ACCEL_SENS_8G_VALUE = 4096;
+        const int ACCEL_SENS_16G_VALUE = 2048;
 
-        Gyro_Speed gyro_speed;
-        Accel_Speed accel_speed;
 
-        I2C i2c;
+        const uint16_t MAX_GYRO_CALIB_SAMPLES = 200;
+        const uint16_t MAX_ACCEL_CALIB_SAMPLES = 200;
+        const uint32_t GYRO_CALIB_DELAY = 10;
+        const uint32_t ACCEL_CALIB_DELAY = 10;
 
-        const uint16_t MAX_GYRO_CALIB_SAMPLES = 10;
-        const uint16_t MAX_ACCEL_CALIB_SAMPLES = 10;
-        const uint32_t GYRO_CALIB_DELAY = 100;
-        const uint32_t ACCEL_CALIB_DELAY = 100;
-
-        const float MAX_PITCH_THRESHOLD = 30.0;
-        const float MIN_PITCH_THRESHOLD = -30.0;
-        const float MAX_ROLL_THRESHOLD = 30.0;
-        const float MIN_ROLL_THRESHOLD = -30.0;
+        const float MAX_PITCH_THRESHOLD = 50.0;
+        const float MIN_PITCH_THRESHOLD = -50.0;
+        const float MAX_ROLL_THRESHOLD = 50.0;
+        const float MIN_ROLL_THRESHOLD = -50.0;
 };

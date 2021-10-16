@@ -6,7 +6,7 @@ PID::PID() {
     is_constrained = false;
     previous_error = 0;
     kp_result = ki_result = kd_result = pid_result = 0;
-    use_full_pid = false;
+    last_time = 0;
 }
 
 void PID::set_pid_values(float kp, float ki, float kd) {
@@ -15,62 +15,55 @@ void PID::set_pid_values(float kp, float ki, float kd) {
     PID::kd = kd;
 }
 
-void PID::constrain(int32_t min_result, int32_t max_result) {
-    min_constrain = min_result;
-    max_constrain = max_result;
+void PID::constrain(float min_constrain, float max_constrain) {
     is_constrained = true;
+    PID::min_constrain = min_constrain;
+    PID::max_constrain = max_constrain;
 }
 
-float PID::constrain_value(float value) {
+void PID::constrain() {
     if (is_constrained) {
-        if (value > max_constrain) {
-            return max_constrain;
+        if (pid_result > max_constrain) {
+            pid_result = max_constrain;
         }
-        if (value < min_constrain) {
-            return min_constrain;
+        if (pid_result < min_constrain) {
+            pid_result = min_constrain;
         }
     }
-    return value;
 }
 
 void PID::process_p(float target_value, float current_value) {
     error = (current_value - target_value);
     kp_result = kp * error;
-    if (not use_full_pid) {
-        if (is_constrained) {
-            kp_result = constrain_value(kp_result);
-        }
-    }
 }
 
 void PID::process_i(float target_value, float current_value) {
     error = (current_value - target_value);
-    ki_result = ki_result + (ki * error);
-    if (not use_full_pid) {
-        if (is_constrained) {
-            ki_result = constrain_value(kp_result);
-        }
+    if (error <= 3 && error >= -3) {
+        ki_result = ki_result + (ki * error);
     }
 }
 
-void PID::process_d(float target_value, float current_value, float elapsed_time) {
+void PID::process_d(float target_value, float current_value) {
+    float time_now = HAL_GetTick();
+    float elapsed_time = (float)(time_now - last_time)/1000.0;
+    last_time = time_now;
+
     error = (current_value - target_value);
     kd_result = kd * ((error - previous_error)/elapsed_time);
-    if (not use_full_pid) {
-        if (is_constrained) {
-            kd_result = constrain_value(kp_result);
-        }
-    }
+    previous_error = error;
 }
 
-void PID::process_pid(float target_value, float current_value, float elapsed_time) {
-    use_full_pid = true;
+void PID::process_pid(float target_value, float current_value) {
+
     process_p(target_value, current_value);
     process_i(target_value, current_value);
-    process_d(target_value, current_value, elapsed_time);
+    process_d(target_value, current_value);
+
     pid_result = kp_result + ki_result + kd_result;
+
     if (is_constrained) {
-        pid_result = constrain_value(pid_result);
+        constrain();
     }
 }
 
